@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VÉRTICE HQ // Digital Publishing & Reader OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+        :root {
+            --bg-primary: #090a0f;
+            --bg-panel: rgba(15, 23, 42, 0.75);
+            --bg-floating: rgba(9, 10, 15, 0.90);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-soft: rgba(99, 102, 241, 0.18);
+            --accent-glow: rgba(99, 102, 241, 0.45);
+        }
+
+        body.light-mode {
+            --bg-primary: #f1f5f9;
+            --bg-panel: rgba(255, 255, 255, 0.85);
+            --bg-floating: rgba(255, 255, 255, 0.95);
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --border-color: rgba(15, 23, 42, 0.12);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            overflow-x: hidden;
+            user-select: none;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .font-display { font-family: 'Space Grotesk', sans-serif; }
+
+        .ambient-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 15% 20%, var(--accent-soft) 0%, transparent 45%),
+                radial-gradient(circle at 85% 80%, var(--accent-soft) 0%, transparent 45%);
+            transition: background 0.4s ease;
+        }
+
+        .glass-panel {
+            background: var(--bg-panel);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+
+        .glass-floating {
+            background: var(--bg-floating);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-accent {
+            background-color: var(--accent);
+            color: #ffffff;
+            box-shadow: 0 8px 20px -4px var(--accent-glow);
+            transition: all 0.2s ease;
+        }
+        .btn-accent:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .nav-active {
+            background-color: var(--accent-soft) !important;
+            color: var(--accent) !important;
+            border: 1px solid var(--accent) !important;
+            font-weight: 600;
+        }
+
+        /* Card de Livro na Estante com Efeito 3D Sutil */
+        .book-card-3d {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .book-card-3d:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: -8px 15px 30px rgba(0, 0, 0, 0.6), 0 0 20px var(--accent-soft);
+        }
+
+        /* ================= LIVRO FÍSICO 3D (MODO LEITURA) ================= */
+        .book-perspective { perspective: 2200px; }
+
+        .physical-book-cover {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 20px;
+            background: linear-gradient(145deg, #1e1b18 0%, #0f0d0c 100%);
+            border-radius: 14px;
+            border: 2px solid #2e2925;
+            box-shadow: 
+                0 35px 70px -15px rgba(0, 0, 0, 0.85),
+                0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+                0 6px 0 #141210;
+            transform-style: preserve-3d;
+        }
+
+        .book-page-stack-left {
+            position: relative;
+            background: #fdfbf7;
+            border-radius: 6px 0 0 6px;
+            box-shadow: 
+                -2px 0 0 #e2dcd3,
+                -4px 1px 0 #d5cec4,
+                -6px 2px 0 #c7bfb3,
+                -8px 3px 0 #b8afa2,
+                -10px 5px 12px rgba(0,0,0,0.65);
+            overflow: hidden;
+            transform-origin: right center;
+            transform: rotateY(4deg);
+        }
+
+        .book-page-stack-right {
+            position: relative;
+            background: #fdfbf7;
+            border-radius: 0 6px 6px 0;
+            box-shadow: 
+                2px 0 0 #e2dcd3,
+                4px 1px 0 #d5cec4,
+                6px 2px 0 #c7bfb3,
+                8px 3px 0 #b8afa2,
+                10px 5px 12px rgba(0,0,0,0.65);
+            overflow: hidden;
+            transform-origin: left center;
+            transform: rotateY(-4deg);
+        }
+
+        .page-gutter-left::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(to right, rgba(0,0,0,0.06) 0%, rgba(255,255,255,0.08) 12%, transparent 35%, rgba(0,0,0,0.12) 86%, rgba(0,0,0,0.55) 100%);
+        }
+
+        .page-gutter-right::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(to left, rgba(0,0,0,0.06) 0%, rgba(255,255,255,0.08) 12%, transparent 35%, rgba(0,0,0,0.12) 86%, rgba(0,0,0,0.55) 100%);
+        }
+
+        .book-center-crease {
+            width: 6px;
+            align-self: stretch;
+            background: linear-gradient(90deg, #000000 0%, #27272a 50%, #000000 100%);
+            box-shadow: 0 0 18px rgba(0,0,0,0.95);
+            z-index: 25;
+        }
+
+        /* Tela Cheia */
+        .reader-stage:fullscreen {
+            background: #050508;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+        }
+
+        .reader-stage.theme-oled { background: #000000 !important; }
+        .reader-stage.theme-sepia { background: #1c1813 !important; }
+        .reader-stage.theme-sepia img { filter: sepia(0.25) contrast(0.95) brightness(0.95); }
+
+        /* Fita de Marcador */
+        .bookmark-ribbon {
+            position: absolute;
+            top: -8px;
+            right: 28px;
+            width: 30px;
+            height: 52px;
+            background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.55);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+            z-index: 40;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-origin: top center;
+        }
+        .bookmark-ribbon.hidden-ribbon { transform: scaleY(0); }
+
+        .zoom-container {
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        .zoomable-target {
+            transition: transform 0.15s ease-out;
+            transform-origin: center center;
+        }
+        .zoomable-target.dragging {
+            transition: none;
+            cursor: grabbing !important;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 9999px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <div class="ambient-bg"></div>
+
+    <!-- ================= TELA DE LOGIN ================= -->
+    <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl">
+        <div class="glass-panel w-full max-w-md p-8 rounded-3xl shadow-2xl relative overflow-hidden">
+            <div class="text-center mb-6 relative z-10">
+                <div class="w-16 h-16 rounded-2xl btn-accent flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-book-atlas text-2xl text-white"></i>
+                </div>
+                <h1 class="font-display text-2xl font-bold tracking-wider">VÉRTICE <span style="color: var(--accent)">PUBLISHING</span></h1>
+                <p class="text-xs opacity-60 mt-1 uppercase tracking-widest">Plataforma Digital de Quadrinhos & Livros</p>
+            </div>
+
+            <div class="mb-5 p-3 rounded-2xl bg-black/30 border border-white/10 text-xs space-y-2">
+                <p class="font-semibold opacity-75 uppercase tracking-wider text-[10px]">Acesso Rápido (Clique para preencher):</p>
+                <div id="quick-login-list" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <form id="login-form" class="space-y-4 relative z-10">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider opacity-70 mb-1.5">Credencial</label>
+                    <div class="relative">
+                        <i class="fa-regular fa-user absolute left-4 top-3.5 opacity-50"></i>
+                        <input type="text" id="login-user" required placeholder="doom ou formiga" 
+                            class="w-full bg-black/40 border border-white/15 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider opacity-70 mb-1.5">Chave de Segurança</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-4 top-3.5 opacity-50"></i>
+                        <input type="password" id="login-pass" required placeholder="••••••••" 
+                            class="w-full bg-black/40 border border-white/15 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 transition">
+                    </div>
+                </div>
+                <p id="login-error" class="hidden text-xs text-rose-400 font-medium text-center"></p>
+                <button type="submit" class="w-full py-3.5 rounded-xl btn-accent font-semibold text-sm">
+                    Entrar na Plataforma <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL CRIAR / EDITAR LIVRO (METADADOS COMPLETOS) ================= -->
+    <div id="book-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="glass-panel w-full max-w-2xl rounded-3xl p-6 md:p-8 shadow-2xl border border-white/15 max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b pb-4 mb-6" style="border-color: var(--border-color)">
+                <div>
+                    <h3 id="modal-book-header" class="font-display font-bold text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent)"></i> Cadastrar Nova Obra / HQ
+                    </h3>
+                    <p class="text-xs opacity-60">Defina título, autor, gênero, capa oficial e sinopse do volume</p>
+                </div>
+                <button onclick="closeBookModal()" class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="book-meta-form" class="space-y-5">
+                <input type="hidden" id="meta-book-id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Upload de Capa Personalizada -->
+                    <div class="flex flex-col items-center">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider opacity-70 mb-2 self-start">Capa da Edição</label>
+                        <div onclick="document.getElementById('meta-cover-input').click()" class="group relative w-full aspect-[2/3] rounded-2xl overflow-hidden bg-black/40 border-2 border-dashed border-white/20 hover:border-indigo-500 cursor-pointer flex flex-col items-center justify-center text-center p-4 transition">
+                            <img id="meta-cover-preview" src="" class="hidden absolute inset-0 w-full h-full object-cover">
+                            <div id="meta-cover-placeholder" class="space-y-2">
+                                <i class="fa-regular fa-image text-3xl opacity-50 group-hover:scale-110 transition"></i>
+                                <p class="text-xs font-medium">Clique para enviar a Capa</p>
+                                <p class="text-[10px] opacity-50">Ou use a 1ª página automaticamente</p>
+                            </div>
+                            <div class="absolute inset-x-0 bottom-0 bg-black/80 py-1.5 text-[10px] font-semibold text-white opacity-0 group-hover:opacity-100 transition">
+                                Trocar Imagem de Capa
+                            </div>
+                        </div>
+                        <input type="file" id="meta-cover-input" accept="image/*" class="hidden">
+                    </div>
+
+                    <!-- Campos Catalográficos -->
+                    <div class="md:col-span-2 space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="sm:col-span-2">
+                                <label class="block text-[11px] font-bold uppercase opacity-70 mb-1">Título Principal da Obra *</label>
+                                <input type="text" id="meta-title" required placeholder="Ex: Equipe Vértice: Guerra Multiversal #1" class="w-full bg-black/30 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase opacity-70 mb-1">Autor / Roteiro & Arte *</label>
+                                <input type="text" id="meta-author" required placeholder="Ex: João Pedro" class="w-full bg-black/30 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase opacity-70 mb-1">Gênero Principal *</label>
+                                <select id="meta-genre" class="w-full bg-slate-900 border border-white/15 text-white rounded-xl px-3.5 py-2.5 text-xs outline-none">
+                                    <option value="Super-Heróis & Multiverso">⚡ Super-Heróis & Multiverso</option>
+                                    <option value="Sci-Fi & Cyberpunk">🚀 Sci-Fi & Cyberpunk</option>
+                                    <option value="Fantasia Arcana">🔮 Fantasia Arcana</option>
+                                    <option value="Ação & Aventura">⚔️ Ação & Aventura</option>
+                                    <option value="Suspense & Mistério">🕵️ Suspense & Mistério</option>
+                                    <option value="Mangá / Webtoon">🎌 Mangá / Webtoon</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase opacity-70 mb-1">Universo / Selo Editorial</label>
+                                <input type="text" id="meta-universe" placeholder="Ex: Universo 61603" class="w-full bg-black/30 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase opacity-70 mb-1">Status de Publicação</label>
+                                <select id="meta-status" class="w-full bg-slate-900 border border-white/15 text-white rounded-xl px-3.5 py-2.5 text-xs outline-none">
+                                    <option value="Em Lançamento">🟢 Em Lançamento</option>
+                                    <option value="Edição Completa">🔵 Edição Completa</option>
+                                    <option value="Especial / One-Shot">🟣 Especial / One-Shot</option>
+                                    <option value="Rascunho / Produção">🟡 Em Produção</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase opacity-70 mb-1">Sinopse Oficial da Edição</label>
+                            <textarea id="meta-synopsis" rows="4" placeholder="Descreva a história, conflito principal e personagens desta edição..." class="w-full bg-black/30 border border-white/15 rounded-xl p-3.5 text-xs outline-none focus:border-indigo-500 resize-none"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t" style="border-color: var(--border-color)">
+                    <button type="button" onclick="closeBookModal()" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold transition">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl btn-accent text-xs font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-floppy-disk"></i> Salvar Metadados da Obra
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= APLICAÇÃO PRINCIPAL ================= -->
+    <div id="app-container" class="hidden flex-1 flex h-screen overflow-hidden">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-68 glass-panel border-r flex flex-col justify-between z-20 shrink-0" style="border-color: var(--border-color)">
+            <div>
+                <div class="p-5 flex items-center gap-3 border-b" style="border-color: var(--border-color)">
+                    <div class="w-10 h-10 rounded-xl btn-accent flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-book-journal-whills text-white"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-display font-bold text-base tracking-wide leading-none">VÉRTICE <span style="color: var(--accent)">OS</span></h2>
+                        <span class="text-[10px] text-emerald-400 font-medium flex items-center gap-1 mt-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Estante Multi-Obras
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Livro Ativo Selecionado -->
+                <div class="px-4 pt-4">
+                    <div class="p-3 rounded-2xl bg-black/20 border flex items-center gap-3" style="border-color: var(--border-color)">
+                        <img id="sidebar-active-cover" src="" class="w-10 h-14 rounded-lg object-cover bg-slate-800 shrink-0 hidden">
+                        <div id="sidebar-active-placeholder" class="w-10 h-14 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-book text-xs" style="color: var(--accent)"></i>
+                        </div>
+                        <div class="truncate flex-1">
+                            <span class="text-[9px] uppercase tracking-widest opacity-50 font-bold block">Obra Selecionada</span>
+                            <p id="sidebar-active-title" class="text-xs font-bold truncate">Nenhuma selecionada</p>
+                            <p id="sidebar-active-author" class="text-[10px] opacity-60 truncate">—</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navegação de Modos -->
+                <div class="p-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider opacity-50 px-3 mb-2">Menu Principal</p>
+                    <nav class="space-y-1">
+                        <button onclick="switchMode('shelf')" id="nav-shelf" class="nav-active w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition">
+                            <span class="flex items-center gap-3"><i class="fa-solid fa-swatchbook w-4"></i> Estante de Obras</span>
+                            <span id="badge-books" class="text-xs px-2 py-0.5 rounded-md bg-black/20">0</span>
+                        </button>
+                        <button onclick="switchMode('grid')" id="nav-grid" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm opacity-75 hover:opacity-100 hover:bg-white/5 transition">
+                            <span class="flex items-center gap-3"><i class="fa-solid fa-grip w-4"></i> Páginas da Edição</span>
+                            <span id="badge-total" class="text-xs px-2 py-0.5 rounded-md bg-black/20">0</span>
+                        </button>
+                        <button onclick="switchMode('single')" id="nav-single" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm opacity-75 hover:opacity-100 hover:bg-white/5 transition">
+                            <span class="flex items-center gap-3"><i class="fa-regular fa-file-image w-4"></i> Leitor: Página Única</span>
+                        </button>
+                        <button onclick="switchMode('book')" id="nav-book" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm opacity-75 hover:opacity-100 hover:bg-white/5 transition">
+                            <span class="flex items-center gap-3"><i class="fa-solid fa-book-open w-4"></i> Leitor: Livro 3D</span>
+                        </button>
+                        <button onclick="switchMode('settings')" id="nav-settings" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm opacity-75 hover:opacity-100 hover:bg-white/5 transition">
+                            <span class="flex items-center gap-3"><i class="fa-solid fa-sliders w-4"></i> Configurações</span>
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Marcadores da Obra Atual -->
+                <div class="px-4 pt-2 border-t" style="border-color: var(--border-color)">
+                    <div class="flex items-center justify-between px-3 mb-2">
+                        <p class="text-[11px] font-semibold uppercase tracking-wider opacity-50">Marcadores da Edição</p>
+                        <span id="bookmark-count" class="text-[11px] text-rose-500 font-bold">0</span>
+                    </div>
+                    <div id="sidebar-bookmarks" class="space-y-1 max-h-32 overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+
+            <!-- Rodapé Sidebar -->
+            <div class="p-4 border-t space-y-2 bg-black/10" style="border-color: var(--border-color)">
+                <div class="flex items-center justify-between pt-1 px-1">
+                    <div class="flex items-center gap-2.5 overflow-hidden">
+                        <div class="w-9 h-9 rounded-xl btn-accent flex items-center justify-center font-bold text-xs shrink-0" id="user-avatar">DM</div>
+                        <div class="truncate">
+                            <p id="user-display" class="text-xs font-bold truncate">Autor</p>
+                            <span id="user-role-badge" class="inline-block text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md mt-0.5">DOUTOR DOOM</span>
+                        </div>
+                    </div>
+                    <button onclick="logout()" title="Trocar Usuário / Sair" class="opacity-60 hover:opacity-100 hover:text-rose-500 p-2 rounded-lg transition">
+                        <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ÁREA DE CONTEÚDO PRINCIPAL -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+            
+            <!-- HEADER SUPERIOR -->
+            <header class="h-16 glass-panel border-b px-8 flex items-center justify-between shrink-0 z-10" style="border-color: var(--border-color)">
+                <div class="flex items-center gap-4">
+                    <h2 id="header-title" class="font-display font-bold text-lg">Estante Digital de Quadrinhos</h2>
+                    <span id="role-permission-hint" class="text-xs px-3 py-1 rounded-full font-medium"></span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <!-- Botão Nova Obra (Exclusivo DOUTOR DOOM) -->
+                    <button id="btn-new-book" onclick="openBookModal()" class="py-2 px-4 rounded-xl btn-accent font-semibold text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Nova Obra / HQ
+                    </button>
+
+                    <!-- Botão Adicionar Páginas na Obra Atual (Exclusivo DOUTOR DOOM) -->
+                    <label id="btn-header-upload" for="file-input" class="hidden cursor-pointer py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-600/25">
+                        <i class="fa-solid fa-file-circle-plus"></i> Subir Páginas
+                    </label>
+                    <input type="file" id="file-input" multiple accept="image/*" class="hidden">
+
+                    <button onclick="triggerReaderFullscreen()" class="py-2 px-4 rounded-xl glass-panel hover:bg-white/10 font-medium text-xs transition flex items-center gap-2">
+                        <i class="fa-solid fa-expand" style="color: var(--accent)"></i> Ler em Tela Cheia
+                    </button>
+                </div>
+            </header>
+
+            <!-- ================= MODO 0: ESTANTE DE OBRAS (SISTEMA DE LIVROS ONLINE) ================= -->
+            <section id="view-shelf" class="flex-1 overflow-y-auto p-8 space-y-8">
+                
+                <!-- HERO BANNER DA OBRA EM DESTAQUE / SELECIONADA -->
+                <div id="shelf-hero" class="hidden relative rounded-3xl overflow-hidden border shadow-2xl" style="border-color: var(--border-color)">
+                    <!-- Imagem de Fundo Desfocada -->
+                    <div id="hero-bg-blur" class="absolute inset-0 bg-cover bg-center blur-2xl opacity-30 scale-110 transition-all duration-700"></div>
+                    <div class="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-black/40"></div>
+
+                    <div class="relative z-10 p-6 md:p-8 flex flex-col md:flex-row items-center md:items-start gap-7 text-white">
+                        <!-- Capa em Destaque -->
+                        <div class="w-40 md:w-48 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border-2 border-white/15 shrink-0 bg-slate-900 relative group">
+                            <img id="hero-cover-img" src="" class="w-full h-full object-cover">
+                            <span id="hero-status-badge" class="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/80 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider border border-white/10"></span>
+                        </div>
+
+                        <!-- Metadados Completos da Obra -->
+                        <div class="flex-1 space-y-4 text-center md:text-left">
+                            <div class="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                                <span id="hero-genre-tag" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider" style="background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent)">Gênero</span>
+                                <span id="hero-universe-tag" class="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-slate-200">Universo</span>
+                                <span id="hero-pages-count" class="px-3 py-1 rounded-full text-xs font-mono bg-white/5 text-slate-300">0 páginas</span>
+                            </div>
+
+                            <div>
+                                <h1 id="hero-title" class="font-display text-2xl md:text-4xl font-extrabold tracking-tight text-white">Título da HQ</h1>
+                                <p class="text-sm text-slate-300 mt-1">Por <strong id="hero-author" class="text-white underline decoration-indigo-500">Autor</strong></p>
+                            </div>
+
+                            <p id="hero-synopsis" class="text-xs md:text-sm text-slate-300 max-w-3xl leading-relaxed line-clamp-3"></p>
+
+                            <!-- Barra de Progresso Individual do Leitor -->
+                            <div class="max-w-md pt-1 mx-auto md:mx-0">
+                                <div class="flex justify-between text-[11px] text-slate-300 mb-1">
+                                    <span id="hero-progress-text">Progresso de leitura: 0%</span>
+                                    <span id="hero-last-page-label">Página 1</span>
+                                </div>
+                                <div class="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                                    <div id="hero-progress-bar" class="h-full transition-all duration-500" style="width: 0%; background: var(--accent)"></div>
+                                </div>
+                            </div>
+
+                            <!-- Botões de Ação na Obra -->
+                            <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
+                                <button onclick="switchMode('book')" class="px-5 py-2.5 rounded-xl btn-accent font-bold text-xs flex items-center gap-2">
+                                    <i class="fa-solid fa-book-open"></i> Ler no Modo Livro 3D
+                                </button>
+                                <button onclick="switchMode('single')" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition flex items-center gap-2">
+                                    <i class="fa-regular fa-file-image"></i> Ler Página por Página
+                                </button>
+                                <button onclick="switchMode('grid')" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition flex items-center gap-2">
+                                    <i class="fa-solid fa-grip"></i> Ver / Gerenciar Páginas
+                                </button>
+                                <button id="btn-hero-edit" onclick="editCurrentBookMeta()" class="px-3.5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-semibold text-xs transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-pen-to-square"></i> Editar Ficha / Capa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BARRA DE PESQUISA E FILTROS DE GÊNERO -->
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="relative w-full md:w-80">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3 opacity-50 text-xs"></i>
+                        <input type="text" id="shelf-search" oninput="renderShelf()" placeholder="Pesquisar por título, autor ou universo..." 
+                            class="w-full glass-panel rounded-xl pl-10 pr-4 py-2 text-xs outline-none focus:border-indigo-500">
+                    </div>
+
+                    <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1" id="genre-filters">
+                        <button onclick="setGenreFilter('ALL')" data-genre="ALL" class="genre-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold btn-accent shrink-0">Todos os Gêneros</button>
+                        <button onclick="setGenreFilter('Super-Heróis & Multiverso')" data-genre="Super-Heróis & Multiverso" class="genre-chip px-3.5 py-1.5 rounded-xl text-xs font-medium glass-panel hover:bg-white/10 shrink-0">⚡ Super-Heróis</button>
+                        <button onclick="setGenreFilter('Sci-Fi & Cyberpunk')" data-genre="Sci-Fi & Cyberpunk" class="genre-chip px-3.5 py-1.5 rounded-xl text-xs font-medium glass-panel hover:bg-white/10 shrink-0">🚀 Sci-Fi</button>
+                        <button onclick="setGenreFilter('Fantasia Arcana')" data-genre="Fantasia Arcana" class="genre-chip px-3.5 py-1.5 rounded-xl text-xs font-medium glass-panel hover:bg-white/10 shrink-0">🔮 Fantasia</button>
+                        <button onclick="setGenreFilter('Ação & Aventura')" data-genre="Ação & Aventura" class="genre-chip px-3.5 py-1.5 rounded-xl text-xs font-medium glass-panel hover:bg-white/10 shrink-0">⚔️ Ação</button>
+                    </div>
+                </div>
+
+                <!-- GRADE DE LIVROS DA ESTANTE -->
+                <div id="books-shelf-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                    <!-- Renderizado via JS -->
+                </div>
+            </section>
+
+            <!-- ================= MODO 1: ACERVO DE PÁGINAS DA OBRA ATUAL ================= -->
+            <section id="view-grid" class="hidden flex-1 overflow-y-auto p-8 space-y-6">
+                
+                <!-- Cabeçalho Contextual da Obra -->
+                <div class="glass-panel p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <button onclick="switchMode('shelf')" class="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-arrow-left"></i> Voltar à Estante
+                        </button>
+                        <div>
+                            <h3 id="grid-book-title" class="font-display font-bold text-base">Título da Obra</h3>
+                            <p id="grid-book-meta" class="text-xs opacity-60">Autor • Gênero</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="btn-grid-edit-meta" onclick="editCurrentBookMeta()" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-sliders"></i> Editar Metadados / Capa
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dropzone (Exclusivo DOUTOR DOOM) -->
+                <div id="dropzone" class="border-2 border-dashed rounded-3xl p-8 text-center transition-all cursor-pointer glass-panel hover:opacity-95 group" style="border-color: var(--accent)">
+                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition" style="background: var(--accent-soft)">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl" style="color: var(--accent)"></i>
+                    </div>
+                    <h3 class="text-sm font-bold">Arraste e solte as páginas numeradas desta edição aqui</h3>
+                    <p class="text-xs opacity-60 mt-1">Dica: Você pode clicar no ícone de <i class="fa-solid fa-star text-amber-400"></i> em qualquer página abaixo para defini-la como Capa Oficial do Livro!</p>
+                </div>
+
+                <!-- Grid de Páginas -->
+                <div id="pages-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5"></div>
+            </section>
+
+            <!-- ================= MODO 2: LEITURA PÁGINA ÚNICA ================= -->
+            <section id="view-single" class="reader-stage hidden flex-1 relative overflow-hidden flex flex-col justify-between bg-black/40">
+                <div class="w-full p-4 flex items-center justify-between z-30 pointer-events-none">
+                    <div class="glass-floating px-4 py-2 rounded-2xl flex items-center gap-3 pointer-events-auto">
+                        <button onclick="switchMode('shelf')" class="text-xs opacity-70 hover:opacity-100 mr-1"><i class="fa-solid fa-arrow-left"></i></button>
+                        <span id="single-book-title" class="text-xs font-bold truncate max-w-[160px]" style="color: var(--accent)">HQ</span>
+                        <span class="opacity-30">|</span>
+                        <span id="single-filename" class="text-xs opacity-80 font-mono truncate max-w-[180px]">pagina_01.jpg</span>
+                    </div>
+
+                    <div class="glass-floating px-3 py-1.5 rounded-2xl flex items-center gap-1.5 pointer-events-auto">
+                        <button onclick="toggleCurrentBookmark()" id="btn-bookmark-single" title="Marcar Página (B)" class="p-2 rounded-xl opacity-75 hover:opacity-100 hover:bg-white/10 transition">
+                            <i class="fa-regular fa-bookmark"></i>
+                        </button>
+                        <div class="h-4 w-[1px] bg-white/15 mx-1"></div>
+                        <button onclick="adjustZoom(-0.25)" class="p-2 rounded-xl opacity-75 hover:opacity-100 hover:bg-white/10 transition"><i class="fa-solid fa-magnifying-glass-minus text-xs"></i></button>
+                        <span id="zoom-level-single" class="text-[11px] font-mono w-12 text-center">100%</span>
+                        <button onclick="adjustZoom(0.25)" class="p-2 rounded-xl opacity-75 hover:opacity-100 hover:bg-white/10 transition"><i class="fa-solid fa-magnifying-glass-plus text-xs"></i></button>
+                        <button onclick="resetZoom()" class="p-2 rounded-xl opacity-75 hover:opacity-100 hover:bg-white/10 transition text-xs"><i class="fa-solid fa-rotate-left"></i></button>
+                        <div class="h-4 w-[1px] bg-white/15 mx-1"></div>
+                        <button onclick="cycleReaderTheme()" title="Mudar Ambiência" class="p-2 rounded-xl opacity-75 hover:opacity-100 hover:bg-white/10 transition"><i class="fa-solid fa-palette text-xs"></i></button>
+                        <button onclick="toggleStageFullscreen('view-single')" class="ml-1 px-3 py-1.5 rounded-xl btn-accent text-xs font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-expand fullscreen-icon"></i> <span class="fullscreen-text">Tela Cheia</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="zoom-container flex-1" id="single-zoom-area">
+                    <button onclick="changePageSingle(-1)" class="absolute left-6 z-30 w-12 h-12 rounded-2xl glass-floating hover:scale-105 transition flex items-center justify-center shadow-xl">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+
+                    <div id="single-target" class="zoomable-target relative inline-block shadow-2xl rounded-lg">
+                        <div id="ribbon-single" class="bookmark-ribbon hidden-ribbon"></div>
+                        <img id="single-img" src="" alt="Página HQ" class="max-h-[75vh] w-auto object-contain rounded-lg select-none pointer-events-none shadow-2xl border border-white/10">
+                    </div>
+
+                    <button onclick="changePageSingle(1)" class="absolute right-6 z-30 w-12 h-12 rounded-2xl glass-floating hover:scale-105 transition flex items-center justify-center shadow-xl">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <div class="w-full p-4 flex justify-center z-30 pointer-events-none">
+                    <div class="glass-floating px-5 py-2.5 rounded-2xl flex items-center gap-4 w-full max-w-xl pointer-events-auto">
+                        <span id="single-counter" class="text-xs font-bold whitespace-nowrap">Pág. 1 de 1</span>
+                        <input type="range" id="single-slider" min="0" max="0" value="0" oninput="jumpToPage(this.value)" class="w-full h-1.5 bg-slate-700 rounded-lg cursor-pointer" style="accent-color: var(--accent)">
+                        <button onclick="toggleBookmarksDrawer()" class="text-xs opacity-80 hover:opacity-100 flex items-center gap-1.5 whitespace-nowrap font-medium">
+                            <i class="fa-solid fa-bookmark text-rose-500"></i> Marcadores
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= MODO 3: LIVRO FÍSICO 3D REALISTA ================= -->
+            <section id="view-book" class="reader-stage hidden flex-1 relative overflow-hidden flex flex-col justify-between bg-black/50">
+                <div class="w-full p-4 flex items-center justify-between z-30 pointer-events-none">
+                    <div class="glass-floating px-4 py-2 rounded-2xl flex items-center gap-3 pointer-events-auto">
+                        <button onclick="switchMode('shelf')" class="text-xs opacity-70 hover:opacity-100 mr-1"><i class="fa-solid fa-arrow-left"></i></button>
+                        <span id="book-reader-title" class="text-xs font-bold uppercase tracking-wider truncate max-w-[200px]" style="color: var(--accent)">Edição 3D</span>
+                        <span class="opacity-30">|</span>
+                        <span id="book-spread-label" class="text-xs opacity-80">Capa</span>
+                    </div>
+
+                    <div class="glass-floating px-3 py-1.5 rounded-2xl flex items-center gap-1.5 pointer-events-auto">
+                        <button onclick="toggleCurrentBookmark()" id="btn-bookmark-book" title="Marcar Página (B)" class="p-2 rounded-xl opacity-75 hover:opacity-100 hover:bg-white/10 transition">
+                            <i class="fa-regular fa-bookmark"></i>
+                        </button>
+                        <div class="h-4 w-[1px] bg-white/15 mx-1"></div>
+                        <button onclick="adjustZoom(-0.25)" class="p-2 rounded-xl opacity-75 hover:opacity-100 hover:bg-white/10 transition"><i class="fa-solid fa-magnifying-glass-minus text-xs"></i></button>
+                        <span id="zoom-level-book" class="text-[11px] font-mono w-12 text-center">100%</span>
+                        <button onclick="adjustZoom(0.25)" class="p-2 rounded-xl opacity-75 hover:opacity-100 hover:bg-white/10 transition"><i class="fa-solid fa-magnifying-glass-plus text-xs"></i></button>
+                        <button onclick="resetZoom()" class="p-2 rounded-xl opacity-75 hover:opacity-100 hover:bg-white/10 transition text-xs"><i class="fa-solid fa-rotate-left"></i></button>
+                        <div class="h-4 w-[1px] bg-white/15 mx-1"></div>
+                        <button onclick="cycleReaderTheme()" title="Mudar Ambiência" class="p-2 rounded-xl opacity-75 hover:opacity-100 hover:bg-white/10 transition"><i class="fa-solid fa-palette text-xs"></i></button>
+                        <button onclick="toggleStageFullscreen('view-book')" class="ml-1 px-3 py-1.5 rounded-xl btn-accent text-xs font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-expand fullscreen-icon"></i> <span class="fullscreen-text">Tela Cheia</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="zoom-container book-perspective flex-1" id="book-zoom-area">
+                    <button onclick="changeSpreadBook(-1)" class="absolute left-6 z-30 w-12 h-12 rounded-2xl glass-floating hover:scale-105 transition flex items-center justify-center shadow-xl">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+
+                    <div id="book-target" class="zoomable-target physical-book-cover">
+                        <div id="ribbon-book" class="bookmark-ribbon hidden-ribbon"></div>
+                        
+                        <div id="book-left-wrapper" class="book-page-stack-left page-gutter-left">
+                            <img id="book-left-img" src="" class="max-h-[70vh] w-auto object-contain select-none pointer-events-none block">
+                            <span id="book-num-left" class="absolute bottom-2 left-3 text-[10px] font-mono font-bold text-black/60 bg-white/70 px-1.5 rounded z-20">1</span>
+                        </div>
+
+                        <div id="book-spine-el" class="book-center-crease"></div>
+
+                        <div id="book-right-wrapper" class="book-page-stack-right page-gutter-right">
+                            <img id="book-right-img" src="" class="max-h-[70vh] w-auto object-contain select-none pointer-events-none block">
+                            <span id="book-num-right" class="absolute bottom-2 right-3 text-[10px] font-mono font-bold text-black/60 bg-white/70 px-1.5 rounded z-20">2</span>
+                        </div>
+                    </div>
+
+                    <button onclick="changeSpreadBook(1)" class="absolute right-6 z-30 w-12 h-12 rounded-2xl glass-floating hover:scale-105 transition flex items-center justify-center shadow-xl">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <div class="w-full p-4 flex justify-center z-30 pointer-events-none">
+                    <div class="glass-floating px-5 py-2.5 rounded-2xl flex items-center gap-4 w-full max-w-xl pointer-events-auto">
+                        <span id="book-counter" class="text-xs font-bold whitespace-nowrap">Spread 1</span>
+                        <div class="flex-1 bg-slate-700/60 h-1.5 rounded-full overflow-hidden">
+                            <div id="book-progress-bar" class="h-full transition-all duration-300" style="width: 0%; background-color: var(--accent)"></div>
+                        </div>
+                        <button onclick="toggleBookmarksDrawer()" class="text-xs opacity-80 hover:opacity-100 flex items-center gap-1.5 whitespace-nowrap font-medium">
+                            <i class="fa-solid fa-bookmark text-rose-500"></i> Marcadores
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= MODO 4: CONFIGURAÇÕES (TEMAS & USUÁRIOS) ================= -->
+            <section id="view-settings" class="hidden flex-1 overflow-y-auto p-8">
+                <div class="max-w-5xl mx-auto space-y-8">
+                    
+                    <div class="glass-panel rounded-3xl p-6 space-y-6">
+                        <div class="flex items-center justify-between border-b pb-4" style="border-color: var(--border-color)">
+                            <div>
+                                <h3 class="font-display font-bold text-base flex items-center gap-2">
+                                    <i class="fa-solid fa-palette" style="color: var(--accent)"></i> Aparência & Dinâmica do Sistema
+                                </h3>
+                                <p class="text-xs opacity-60">Alterne entre Modo Claro/Escuro e escolha a cor de energia da interface</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="p-4 rounded-2xl bg-black/10 border" style="border-color: var(--border-color)">
+                                <label class="block text-xs font-bold uppercase tracking-wider opacity-70 mb-3">Modo de Luminosidade</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button onclick="setThemeMode('dark')" id="btn-mode-dark" class="py-3 px-4 rounded-xl border flex items-center justify-center gap-2 text-xs font-semibold transition">
+                                        <i class="fa-solid fa-moon text-indigo-400"></i> Modo Escuro
+                                    </button>
+                                    <button onclick="setThemeMode('light')" id="btn-mode-light" class="py-3 px-4 rounded-xl border flex items-center justify-center gap-2 text-xs font-semibold transition">
+                                        <i class="fa-solid fa-sun text-amber-500"></i> Modo Claro
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="p-4 rounded-2xl bg-black/10 border" style="border-color: var(--border-color)">
+                                <label class="block text-xs font-bold uppercase tracking-wider opacity-70 mb-3">Cor de Energia (Accent Color)</label>
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <button onclick="setAccentColor('#6366f1', '#4f46e5', 'rgba(99,102,241,0.18)', 'rgba(99,102,241,0.45)')" class="w-9 h-9 rounded-xl bg-indigo-500 hover:scale-110 transition shadow-lg"></button>
+                                    <button onclick="setAccentColor('#10b981', '#059669', 'rgba(16,185,129,0.18)', 'rgba(16,185,129,0.45)')" class="w-9 h-9 rounded-xl bg-emerald-500 hover:scale-110 transition shadow-lg"></button>
+                                    <button onclick="setAccentColor('#ef4444', '#dc2626', 'rgba(239,68,68,0.18)', 'rgba(239,68,68,0.45)')" class="w-9 h-9 rounded-xl bg-red-500 hover:scale-110 transition shadow-lg"></button>
+                                    <button onclick="setAccentColor('#a855f7', '#9333ea', 'rgba(168,85,247,0.18)', 'rgba(168,85,247,0.45)')" class="w-9 h-9 rounded-xl bg-purple-500 hover:scale-110 transition shadow-lg"></button>
+                                    <button onclick="setAccentColor('#f59e0b', '#d97706', 'rgba(245,158,11,0.18)', 'rgba(245,158,11,0.45)')" class="w-9 h-9 rounded-xl bg-amber-500 hover:scale-110 transition shadow-lg"></button>
+                                    <button onclick="setAccentColor('#06b6d4', '#0891b2', 'rgba(6,182,212,0.18)', 'rgba(6,182,212,0.45)')" class="w-9 h-9 rounded-xl bg-cyan-500 hover:scale-110 transition shadow-lg"></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GERENCIAMENTO DE USUÁRIOS E HIERARQUIA -->
+                    <div class="glass-panel rounded-3xl p-6 space-y-6">
+                        <div class="flex flex-wrap items-center justify-between gap-4 border-b pb-4" style="border-color: var(--border-color)">
+                            <div>
+                                <h3 class="font-display font-bold text-base flex items-center gap-2">
+                                    <i class="fa-solid fa-users-gear" style="color: var(--accent)"></i> Controle de Credenciais & Hierarquia
+                                </h3>
+                                <p class="text-xs opacity-60"><strong>Doutor Doom:</strong> Cria obras, edita capa/metadados, sobe páginas e gerencia usuários • <strong>Homem-Formiga:</strong> Leitor</p>
+                            </div>
+                            <span id="settings-role-status" class="text-xs font-bold px-3 py-1 rounded-full"></span>
+                        </div>
+
+                        <div id="users-locked-banner" class="hidden p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-3">
+                            <i class="fa-solid fa-shield-halved text-lg"></i>
+                            <span>Apenas usuários com status <strong>DOUTOR DOOM</strong> podem adicionar contas, remover integrantes ou alterar patentes.</span>
+                        </div>
+
+                        <form id="add-user-form" class="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-black/15 border" style="border-color: var(--border-color)">
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase opacity-60 mb-1">Nome de Usuário</label>
+                                <input type="text" id="new-username" required placeholder="Ex: scott_lang" class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-xs outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase opacity-60 mb-1">Senha de Acesso</label>
+                                <input type="text" id="new-password" required placeholder="Senha..." class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-xs outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase opacity-60 mb-1">Patente / Status</label>
+                                <select id="new-role" class="w-full bg-slate-900 border border-white/15 text-white rounded-xl px-3 py-2 text-xs outline-none">
+                                    <option value="HOMEM FORMIGA">🐜 HOMEM-FORMIGA (Leitor)</option>
+                                    <option value="DOUTOR DOOM">👑 DOUTOR DOOM (Admin Total)</option>
+                                </select>
+                            </div>
+                            <div class="flex items-end">
+                                <button type="submit" class="w-full py-2 px-4 rounded-xl btn-accent font-semibold text-xs flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-user-plus"></i> Cadastrar Conta
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b text-[11px] uppercase opacity-60" style="border-color: var(--border-color)">
+                                        <th class="py-3 px-4">Integrante</th>
+                                        <th class="py-3 px-4">Status Atual</th>
+                                        <th class="py-3 px-4">Permissões</th>
+                                        <th class="py-3 px-4 text-right">Ações (Doutor Doom)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body" class="divide-y text-xs" style="border-color: var(--border-color)"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- GAVETA FLUTUANTE DE MARCADORES -->
+            <div id="bookmarks-drawer" class="hidden fixed right-6 bottom-20 z-50 w-72 glass-floating rounded-2xl p-4 border shadow-2xl" style="border-color: var(--border-color)">
+                <div class="flex items-center justify-between pb-3 mb-3 border-b" style="border-color: var(--border-color)">
+                    <h4 class="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-bookmark text-rose-500"></i> Marcadores desta Obra
+                    </h4>
+                    <button onclick="toggleBookmarksDrawer()" class="opacity-60 hover:opacity-100 text-xs"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="drawer-bookmarks-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        /* =========================================================================
+           1. BANCO DE DADOS MULTI-LIVROS (INDEXEDDB V2)
+           ========================================================================= */
+        const DB_NAME = 'VerticePublishing_DB';
+        const DB_VERSION = 2;
+        const STORE_BOOKS = 'books_catalog';
+        let dbInstance = null;
+
+        function initDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_BOOKS)) {
+                        db.createObjectStore(STORE_BOOKS, { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    dbInstance = e.target.result;
+                    resolve(dbInstance);
+                };
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function saveBookToDB(bookObj) {
+            if (!dbInstance) await initDatabase();
+            // Criamos uma cópia limpa sem URLs temporárias de sessão antes de gravar os Blobs
+            const toStore = {
+                id: bookObj.id,
+                title: bookObj.title,
+                author: bookObj.author,
+                genre: bookObj.genre,
+                universe: bookObj.universe,
+                status: bookObj.status,
+                synopsis: bookObj.synopsis,
+                coverBlob: bookObj.coverBlob || null,
+                pages: (bookObj.pages || []).map(p => ({ name: p.name, blob: p.blob })),
+                bookmarks: bookObj.bookmarks || [],
+                lastReadPage: bookObj.lastReadPage || 0,
+                updatedAt: Date.now()
+            };
+
+            return new Promise((resolve, reject) => {
+                const tx = dbInstance.transaction(STORE_BOOKS, 'readwrite');
+                tx.objectStore(STORE_BOOKS).put(toStore);
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function deleteBookFromDB(bookId) {
+            if (!dbInstance) await initDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = dbInstance.transaction(STORE_BOOKS, 'readwrite');
+                tx.objectStore(STORE_BOOKS).delete(bookId);
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function loadAllBooksFromDB() {
+            if (!dbInstance) await initDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = dbInstance.transaction(STORE_BOOKS, 'readonly');
+                const req = tx.objectStore(STORE_BOOKS).getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        /* =========================================================================
+           2. ESTADO GLOBAL E INICIALIZAÇÃO DO CATÁLOGO DE OBRAS
+           ========================================================================= */
+        let library = []; // Lista de obras carregadas na memória com ObjectURLs ativos
+        let currentBookId = null;
+        let currentGenreFilter = 'ALL';
+        let currentMode = 'shelf'; // 'shelf' | 'grid' | 'single' | 'book' | 'settings'
+        let currentIndex = 0;
+        let currentSpread = 0;
+
+        let pendingCoverBlob = null;
+        let currentZoom = 1, panX = 0, panY = 0, isDragging = false, startX = 0, startY = 0;
+        let readerThemeIndex = 0;
+        const readerThemes = ['default', 'theme-oled', 'theme-sepia'];
+        const naturalCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+        function getCurrentBook() {
+            return library.find(b => b.id === currentBookId) || null;
+        }
+
+        function getBookCoverUrl(book) {
+            if (!book) return '';
+            if (book.coverUrl) return book.coverUrl;
+            if (book.pages && book.pages.length > 0) return book.pages[0].url;
+            return 'https://images.unsplash.com/photo-1618519764620-7403abdbdfe9?q=80&w=600&auto=format&fit=crop';
+        }
+
+        async function hydrateLibrary() {
+            const rawBooks = await loadAllBooksFromDB();
+            
+            // Se não existir nenhuma obra ainda, cria uma edição demonstrativa inicial com metadados ricos
+            if (rawBooks.length === 0) {
+                const starterBook = {
+                    id: 'book_' + Date.now(),
+                    title: 'Conflito Multiversal: Edição #01',
+                    author: 'João Pedro',
+                    genre: 'Super-Heróis & Multiverso',
+                    universe: 'Universo 61603 vs 616025',
+                    status: 'Em Lançamento',
+                    synopsis: 'O embate definitivo entre a Equipe Vértice e a Equipe Armagedon começa quando anomalias temporais ameaçam colapsar as realidades.',
+                    coverBlob: null,
+                    pages: [],
+                    bookmarks: [],
+                    lastReadPage: 0
+                };
+                await saveBookToDB(starterBook);
+                rawBooks.push(starterBook);
+            }
+
+            library = rawBooks.map(b => {
+                const hydratedPages = (b.pages || []).map(p => ({
+                    name: p.name,
+                    blob: p.blob,
+                    url: URL.createObjectURL(p.blob)
+                }));
+                hydratedPages.sort((a, z) => naturalCollator.compare(a.name, z.name));
+
+                return {
+                    ...b,
+                    coverUrl: b.coverBlob ? URL.createObjectURL(b.coverBlob) : null,
+                    pages: hydratedPages
+                };
+            });
+
+            const savedActiveId = localStorage.getItem('vertice_active_book_id');
+            if (savedActiveId && library.some(b => b.id === savedActiveId)) {
+                currentBookId = savedActiveId;
+            } else if (library.length > 0) {
+                currentBookId = library[0].id;
+            }
+        }
+
+        /* =========================================================================
+           3. HIERARQUIA DE USUÁRIOS (DOUTOR DOOM vs HOMEM-FORMIGA)
+           ========================================================================= */
+        const DEFAULT_USERS = [
+            { username: 'doom', pass: '123', role: 'DOUTOR DOOM' },
+            { username: 'formiga', pass: '123', role: 'HOMEM FORMIGA' }
+        ];
+
+        let usersList = JSON.parse(localStorage.getItem('vertice_hq_users_db')) || DEFAULT_USERS;
+        let activeUser = JSON.parse(localStorage.getItem('vertice_hq_active_session')) || null;
+
+        function isDoom() {
+            return activeUser && activeUser.role === 'DOUTOR DOOM';
+        }
+
+        function saveUsersList() {
+            localStorage.setItem('vertice_hq_users_db', JSON.stringify(usersList));
+            renderQuickLoginChips();
+            renderUsersTable();
+        }
+
+        function renderQuickLoginChips() {
+            const container = document.getElementById('quick-login-list');
+            if (!container) return;
+            container.innerHTML = usersList.map(u => {
+                const isAdmin = u.role === 'DOUTOR DOOM';
+                const cls = isAdmin ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-amber-500/20 border-amber-500/40 text-amber-300';
+                return `
+                    <button type="button" onclick="fillQuickLogin('${u.username}', '${u.pass}')" class="px-2.5 py-1 rounded-lg border text-[11px] font-medium hover:scale-105 transition flex items-center gap-1.5 ${cls}">
+                        <span>${isAdmin ? '👑' : '🐜'} ${u.username}</span>
+                        <span class="opacity-60 text-[9px]">(${u.role})</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function fillQuickLogin(u, p) {
+            document.getElementById('login-user').value = u;
+            document.getElementById('login-pass').value = p;
+        }
+
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const uInput = document.getElementById('login-user').value.trim();
+            const pInput = document.getElementById('login-pass').value.trim();
+            const errEl = document.getElementById('login-error');
+
+            const found = usersList.find(u => u.username.toLowerCase() === uInput.toLowerCase() && u.pass === pInput);
+            if (!found) {
+                errEl.textContent = 'Credenciais inválidas!';
+                errEl.classList.remove('hidden');
+                return;
+            }
+            errEl.classList.add('hidden');
+            activeUser = found;
+            localStorage.setItem('vertice_hq_active_session', JSON.stringify(activeUser));
+            applySessionPermissions();
+        });
+
+        function applySessionPermissions() {
+            if (!activeUser) {
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('app-container').classList.add('hidden');
+                renderQuickLoginChips();
+                return;
+            }
+
+            const updated = usersList.find(u => u.username === activeUser.username);
+            if (updated) activeUser = updated;
+
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+
+            document.getElementById('user-display').textContent = activeUser.username;
+            document.getElementById('user-avatar').textContent = activeUser.username.substring(0, 2).toUpperCase();
+
+            const roleBadge = document.getElementById('user-role-badge');
+            const headerHint = document.getElementById('role-permission-hint');
+            const settingsStatus = document.getElementById('settings-role-status');
+
+            if (isDoom()) {
+                roleBadge.textContent = '👑 DOUTOR DOOM';
+                roleBadge.className = 'inline-block text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md mt-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+                headerHint.innerHTML = `<i class="fa-solid fa-crown mr-1"></i> Doutor Doom (Editor & Admin)`;
+                headerHint.className = 'text-xs px-3 py-1 rounded-full font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+                settingsStatus.textContent = '👑 Nível Doutor Doom Ativo';
+                settingsStatus.className = 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400';
+
+                document.getElementById('btn-new-book').classList.remove('hidden');
+                document.getElementById('btn-header-upload').classList.remove('hidden');
+                document.getElementById('dropzone').classList.remove('hidden');
+                document.getElementById('btn-hero-edit').classList.remove('hidden');
+                document.getElementById('btn-grid-edit-meta').classList.remove('hidden');
+                document.getElementById('add-user-form').classList.remove('hidden');
+                document.getElementById('users-locked-banner').classList.add('hidden');
+            } else {
+                roleBadge.textContent = '🐜 HOMEM-FORMIGA';
+                roleBadge.className = 'inline-block text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md mt-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30';
+                headerHint.innerHTML = `<i class="fa-solid fa-eye mr-1"></i> Homem-Formiga (Modo Leitor)`;
+                headerHint.className = 'text-xs px-3 py-1 rounded-full font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30';
+                settingsStatus.textContent = '🐜 Nível Homem-Formiga (Leitor)';
+                settingsStatus.className = 'text-xs font-bold px-3 py-1 rounded-full bg-amber-500/20 text-amber-400';
+
+                document.getElementById('btn-new-book').classList.add('hidden');
+                document.getElementById('btn-header-upload').classList.add('hidden');
+                document.getElementById('dropzone').classList.add('hidden');
+                document.getElementById('btn-hero-edit').classList.add('hidden');
+                document.getElementById('btn-grid-edit-meta').classList.add('hidden');
+                document.getElementById('add-user-form').classList.add('hidden');
+                document.getElementById('users-locked-banner').classList.remove('hidden');
+            }
+
+            renderAll();
+            renderUsersTable();
+        }
+
+        function logout() {
+            localStorage.removeItem('vertice_hq_active_session');
+            activeUser = null;
+            applySessionPermissions();
+        }
+
+        /* =========================================================================
+           4. MODAL DE CRIAÇÃO / EDIÇÃO DE METADADOS DA OBRA (CAPA, AUTOR, GÊNERO...)
+           ========================================================================= */
+        const coverInput = document.getElementById('meta-cover-input');
+        coverInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            pendingCoverBlob = file;
+            const preview = document.getElementById('meta-cover-preview');
+            preview.src = URL.createObjectURL(file);
+            preview.classList.remove('hidden');
+            document.getElementById('meta-cover-placeholder').classList.add('hidden');
+        });
+
+        function openBookModal(bookToEdit = null) {
+            if (!isDoom()) return alert('Apenas DOUTOR DOOM pode criar ou editar obras!');
+            pendingCoverBlob = null;
+            const preview = document.getElementById('meta-cover-preview');
+            const placeholder = document.getElementById('meta-cover-placeholder');
+
+            if (bookToEdit) {
+                document.getElementById('modal-book-header').innerHTML = `<i class="fa-solid fa-pen-to-square" style="color: var(--accent)"></i> Editar Ficha Catalográfica`;
+                document.getElementById('meta-book-id').value = bookToEdit.id;
+                document.getElementById('meta-title').value = bookToEdit.title;
+                document.getElementById('meta-author').value = bookToEdit.author;
+                document.getElementById('meta-genre').value = bookToEdit.genre;
+                document.getElementById('meta-universe').value = bookToEdit.universe || '';
+                document.getElementById('meta-status').value = bookToEdit.status || 'Em Lançamento';
+                document.getElementById('meta-synopsis').value = bookToEdit.synopsis || '';
+
+                if (bookToEdit.coverUrl) {
+                    preview.src = bookToEdit.coverUrl;
+                    preview.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                } else {
+                    preview.classList.add('hidden');
+                    placeholder.classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('modal-book-header').innerHTML = `<i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent)"></i> Publicar Nova Obra / HQ`;
+                document.getElementById('book-meta-form').reset();
+                document.getElementById('meta-book-id').value = '';
+                preview.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+            }
+
+            document.getElementById('book-modal').classList.remove('hidden');
+        }
+
+        function editCurrentBookMeta() {
+            const b = getCurrentBook();
+            if (b) openBookModal(b);
+        }
+
+        function closeBookModal() {
+            document.getElementById('book-modal').classList.add('hidden');
+        }
+
+        document.getElementById('book-meta-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!isDoom()) return;
+
+            const existingId = document.getElementById('meta-book-id').value;
+            const title = document.getElementById('meta-title').value.trim();
+            const author = document.getElementById('meta-author').value.trim();
+            const genre = document.getElementById('meta-genre').value;
+            const universe = document.getElementById('meta-universe').value.trim() || 'Universo Original';
+            const status = document.getElementById('meta-status').value;
+            const synopsis = document.getElementById('meta-synopsis').value.trim() || 'Sem sinopse cadastrada.';
+
+            if (existingId) {
+                const book = library.find(b => b.id === existingId);
+                if (book) {
+                    book.title = title;
+                    book.author = author;
+                    book.genre = genre;
+                    book.universe = universe;
+                    book.status = status;
+                    book.synopsis = synopsis;
+                    if (pendingCoverBlob) {
+                        book.coverBlob = pendingCoverBlob;
+                        if (book.coverUrl) URL.revokeObjectURL(book.coverUrl);
+                        book.coverUrl = URL.createObjectURL(pendingCoverBlob);
+                    }
+                    await saveBookToDB(book);
+                }
+            } else {
+                const newBook = {
+                    id: 'book_' + Date.now(),
+                    title,
+                    author,
+                    genre,
+                    universe,
+                    status,
+                    synopsis,
+                    coverBlob: pendingCoverBlob || null,
+                    coverUrl: pendingCoverBlob ? URL.createObjectURL(pendingCoverBlob) : null,
+                    pages: [],
+                    bookmarks: [],
+                    lastReadPage: 0
+                };
+                library.unshift(newBook);
+                currentBookId = newBook.id;
+                localStorage.setItem('vertice_active_book_id', currentBookId);
+                await saveBookToDB(newBook);
+            }
+
+            closeBookModal();
+            renderAll();
+        });
+
+        async function deleteBook(bookId, event) {
+            event.stopPropagation();
+            if (!isDoom()) return;
+            const target = library.find(b => b.id === bookId);
+            if (!target) return;
+            if (!confirm(`Deseja realmente excluir a obra "${target.title}" e todas as suas páginas?`)) return;
+
+            await deleteBookFromDB(bookId);
+            library = library.filter(b => b.id !== bookId);
+            if (currentBookId === bookId) {
+                currentBookId = library[0] ? library[0].id : null;
+            }
+            renderAll();
+        }
+
+        function selectBook(bookId, openMode = 'shelf') {
+            currentBookId = bookId;
+            localStorage.setItem('vertice_active_book_id', bookId);
+            const book = getCurrentBook();
+            if (book) {
+                currentIndex = book.lastReadPage || 0;
+                currentSpread = currentIndex === 0 ? 0 : Math.ceil(currentIndex / 2);
+            }
+            renderAll();
+            if (openMode !== 'shelf') switchMode(openMode);
+        }
+
+        // Função para promover qualquer página da HQ para ser a Capa Oficial da Obra
+        async function setPageAsBookCover(pageIndex, event) {
+            event.stopPropagation();
+            if (!isDoom()) return;
+            const book = getCurrentBook();
+            if (!book || !book.pages[pageIndex]) return;
+
+            const page = book.pages[pageIndex];
+            book.coverBlob = page.blob;
+            if (book.coverUrl) URL.revokeObjectURL(book.coverUrl);
+            book.coverUrl = URL.createObjectURL(page.blob);
+
+            await saveBookToDB(book);
+            renderAll();
+        }
+
+        /* =========================================================================
+           5. RENDERIZAÇÃO DA ESTANTE DIGITAL (HERO + BUSCA + FILTROS)
+           ========================================================================= */
+        function setGenreFilter(genre) {
+            currentGenreFilter = genre;
+            document.querySelectorAll('.genre-chip').forEach(btn => {
+                if (btn.dataset.genre === genre) {
+                    btn.className = 'genre-chip px-3.5 py-1.5 rounded-xl text-xs font-semibold btn-accent shrink-0';
+                } else {
+                    btn.className = 'genre-chip px-3.5 py-1.5 rounded-xl text-xs font-medium glass-panel hover:bg-white/10 shrink-0';
+                }
+            });
+            renderShelf();
+        }
+
+        function renderShelf() {
+            document.getElementById('badge-books').textContent = library.length;
+            const activeBook = getCurrentBook();
+            const hero = document.getElementById('shelf-hero');
+
+            // Atualiza Card na Sidebar e Hero Banner
+            if (activeBook) {
+                hero.classList.remove('hidden');
+                const coverUrl = getBookCoverUrl(activeBook);
+
+                document.getElementById('sidebar-active-title').textContent = activeBook.title;
+                document.getElementById('sidebar-active-author').textContent = `${activeBook.author} • ${activeBook.genre}`;
+                const sideCover = document.getElementById('sidebar-active-cover');
+                sideCover.src = coverUrl;
+                sideCover.classList.remove('hidden');
+                document.getElementById('sidebar-active-placeholder').classList.add('hidden');
+
+                document.getElementById('hero-bg-blur').style.backgroundImage = `url('${coverUrl}')`;
+                document.getElementById('hero-cover-img').src = coverUrl;
+                document.getElementById('hero-status-badge').textContent = activeBook.status;
+                document.getElementById('hero-genre-tag').textContent = activeBook.genre;
+                document.getElementById('hero-universe-tag').textContent = activeBook.universe || 'Original';
+                document.getElementById('hero-pages-count').textContent = `${activeBook.pages.length} páginas`;
+                document.getElementById('hero-title').textContent = activeBook.title;
+                document.getElementById('hero-author').textContent = activeBook.author;
+                document.getElementById('hero-synopsis').textContent = activeBook.synopsis;
+
+                const totalP = activeBook.pages.length;
+                const lastP = activeBook.lastReadPage || 0;
+                const pct = totalP > 0 ? Math.round(((lastP + 1) / totalP) * 100) : 0;
+                document.getElementById('hero-progress-text').textContent = `Progresso de leitura: ${pct}%`;
+                document.getElementById('hero-last-page-label').textContent = totalP > 0 ? `Parou na Pág. ${lastP + 1}/${totalP}` : 'Sem páginas';
+                document.getElementById('hero-progress-bar').style.width = `${pct}%`;
+            } else {
+                hero.classList.add('hidden');
+            }
+
+            // Filtra livros por busca e gênero
+            const query = (document.getElementById('shelf-search')?.value || '').toLowerCase().trim();
+            const filtered = library.filter(b => {
+                const matchesGenre = currentGenreFilter === 'ALL' || b.genre === currentGenreFilter;
+                const matchesSearch = !query || 
+                    b.title.toLowerCase().includes(query) || 
+                    b.author.toLowerCase().includes(query) || 
+                    (b.universe && b.universe.toLowerCase().includes(query));
+                return matchesGenre && matchesSearch;
+            });
+
+            const grid = document.getElementById('books-shelf-grid');
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-12 text-center opacity-50">
+                        <i class="fa-solid fa-book-open text-3xl mb-2"></i>
+                        <p class="text-sm">Nenhuma obra encontrada para este filtro.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const canAdmin = isDoom();
+            grid.innerHTML = filtered.map(book => {
+                const isSelected = book.id === currentBookId;
+                const cover = getBookCoverUrl(book);
+                const totalP = book.pages.length;
+                const pct = totalP > 0 ? Math.round(((book.lastReadPage + 1) / totalP) * 100) : 0;
+
+                return `
+                    <div onclick="selectBook('${book.id}', 'shelf')" class="book-card-3d group relative rounded-2xl overflow-hidden glass-panel cursor-pointer flex flex-col ${isSelected ? 'ring-2 ring-indigo-500' : ''}">
+                        <div class="relative aspect-[2/3] w-full bg-slate-900 overflow-hidden">
+                            <img src="${cover}" alt="${book.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent"></div>
+
+                            <!-- Tag de Gênero no Topo -->
+                            <span class="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md text-[10px] font-bold text-white border border-white/10">
+                                ${book.genre.split(' ')[0]}
+                            </span>
+
+                            <!-- Contagem de Páginas -->
+                            <span class="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-black/80 text-[10px] font-mono text-slate-300">
+                                ${totalP} págs
+                            </span>
+
+                            ${canAdmin ? `
+                                <button onclick="deleteBook('${book.id}', event)" title="Excluir Obra" class="absolute top-3 right-3 w-7 h-7 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white text-xs opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+
+                        <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+                            <div>
+                                <h4 class="font-display font-bold text-sm line-clamp-1">${book.title}</h4>
+                                <p class="text-xs opacity-60 truncate">por ${book.author}</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="w-full h-1 rounded-full bg-white/10 overflow-hidden">
+                                    <div class="h-full" style="width: ${pct}%; background: var(--accent)"></div>
+                                </div>
+                                <div class="flex items-center justify-between gap-2 pt-1">
+                                    <button onclick="event.stopPropagation(); selectBook('${book.id}', 'book')" class="flex-1 py-1.5 px-2 rounded-lg btn-accent text-[11px] font-bold flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-book-open"></i> Ler HQ
+                                    </button>
+                                    <button onclick="event.stopPropagation(); selectBook('${book.id}', 'grid')" class="py-1.5 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-medium transition" title="Ver Páginas">
+                                        <i class="fa-solid fa-grip"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /* =========================================================================
+           6. UPLOAD E GERENCIAMENTO DE PÁGINAS DA OBRA SELECIONADA
+           ========================================================================= */
+        const fileInput = document.getElementById('file-input');
+        const dropzone = document.getElementById('dropzone');
+
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        dropzone.addEventListener('click', () => { if (isDoom()) fileInput.click(); });
+        dropzone.addEventListener('dragover', (e) => e.preventDefault());
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (isDoom()) handleFiles(e.dataTransfer.files);
+        });
+
+        async function handleFiles(fileList) {
+            if (!isDoom()) return alert('Apenas DOUTOR DOOM pode adicionar páginas.');
+            const book = getCurrentBook();
+            if (!book) return alert('Selecione ou crie uma obra primeiro!');
+
+            const validFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+            if (validFiles.length === 0) return;
+
+            for (const file of validFiles) {
+                const existingIdx = book.pages.findIndex(p => p.name === file.name);
+                const newUrl = URL.createObjectURL(file);
+
+                if (existingIdx !== -1) {
+                    URL.revokeObjectURL(book.pages[existingIdx].url);
+                    book.pages[existingIdx].blob = file;
+                    book.pages[existingIdx].url = newUrl;
+                } else {
+                    book.pages.push({ name: file.name, blob: file, url: newUrl });
+                }
+            }
+
+            book.pages.sort((a, b) => naturalCollator.compare(a.name, b.name));
+            await saveBookToDB(book);
+            fileInput.value = '';
+            renderAll();
+        }
+
+        async function removePage(index, event) {
+            event.stopPropagation();
+            if (!isDoom()) return;
+            const book = getCurrentBook();
+            if (!book || !book.pages[index]) return;
+
+            const removed = book.pages[index];
+            URL.revokeObjectURL(removed.url);
+            book.bookmarks = (book.bookmarks || []).filter(b => b !== removed.name);
+            book.pages.splice(index, 1);
+
+            if (currentIndex >= book.pages.length) currentIndex = Math.max(0, book.pages.length - 1);
+            await saveBookToDB(book);
+            renderAll();
+        }
+
+        function renderGrid() {
+            const book = getCurrentBook();
+            const grid = document.getElementById('pages-grid');
+            if (!book) return;
+
+            document.getElementById('grid-book-title').textContent = book.title;
+            document.getElementById('grid-book-meta').textContent = `Autor: ${book.author} • Gênero: ${book.genre} • ${book.pages.length} Páginas`;
+            document.getElementById('badge-total').textContent = book.pages.length;
+
+            if (book.pages.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-12 text-center opacity-50">
+                        <i class="fa-regular fa-folder-open text-3xl mb-2"></i>
+                        <p class="text-sm">Esta edição ainda não possui páginas. Faça o upload acima!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const canAdmin = isDoom();
+            grid.innerHTML = book.pages.map((page, i) => {
+                const isMarked = (book.bookmarks || []).includes(page.name);
+                return `
+                    <div onclick="openPageFromGrid(${i})" class="group relative aspect-[2/3] rounded-2xl overflow-hidden bg-slate-900 border border-white/10 hover:scale-[1.02] transition-all cursor-pointer shadow-lg">
+                        <img src="${page.url}" alt="${page.name}" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition"></div>
+                        
+                        <span class="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md text-[11px] font-bold text-white border border-white/10">
+                            #${i + 1}
+                        </span>
+
+                        ${isMarked ? `<div class="absolute top-0 right-16 w-5 h-8 bg-rose-600 shadow-md" style="clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);"></div>` : ''}
+
+                        ${canAdmin ? `
+                            <div class="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition">
+                                <button onclick="setPageAsBookCover(${i}, event)" title="Definir esta página como Capa Oficial do Livro" class="w-7 h-7 rounded-lg bg-amber-500/90 hover:bg-amber-500 text-black text-xs flex items-center justify-center shadow">
+                                    <i class="fa-solid fa-star"></i>
+                                </button>
+                                <button onclick="removePage(${i}, event)" title="Excluir Página" class="w-7 h-7 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white text-xs flex items-center justify-center shadow">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        ` : ''}
+
+                        <div class="absolute bottom-3 inset-x-3 text-white">
+                            <p class="text-xs font-medium truncate">${page.name}</p>
+                            <p class="text-[10px] opacity-75">Clique para ler</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openPageFromGrid(index) {
+            currentIndex = index;
+            switchMode('single');
+        }
+
+        /* =========================================================================
+           7. LEITORES (PÁGINA ÚNICA & LIVRO 3D) + MARCADORES POR LIVRO
+           ========================================================================= */
+        function getActivePageName() {
+            const book = getCurrentBook();
+            if (!book || book.pages.length === 0) return null;
+            if (currentMode === 'book') {
+                const sp = getSpreadPages(currentSpread);
+                const t = sp.right || sp.left;
+                return t ? t.name : null;
+            }
+            return book.pages[currentIndex] ? book.pages[currentIndex].name : null;
+        }
+
+        async function toggleCurrentBookmark() {
+            const book = getCurrentBook();
+            const pageName = getActivePageName();
+            if (!book || !pageName) return;
+
+            book.bookmarks = book.bookmarks || [];
+            const idx = book.bookmarks.indexOf(pageName);
+            if (idx === -1) book.bookmarks.push(pageName);
+            else book.bookmarks.splice(idx, 1);
+
+            await saveBookToDB(book);
+            renderBookmarksUI();
+            updateReaderBookmarkVisuals();
+            renderGrid();
+        }
+
+        function updateReaderBookmarkVisuals() {
+            const book = getCurrentBook();
+            const pageName = getActivePageName();
+            const isMarked = book && pageName && (book.bookmarks || []).includes(pageName);
+
+            ['single', 'book'].forEach(mode => {
+                const ribbon = document.getElementById(`ribbon-${mode}`);
+                const btn = document.getElementById(`btn-bookmark-${mode}`);
+                if (isMarked) {
+                    ribbon.classList.remove('hidden-ribbon');
+                    btn.innerHTML = `<i class="fa-solid fa-bookmark text-rose-500"></i>`;
+                } else {
+                    ribbon.classList.add('hidden-ribbon');
+                    btn.innerHTML = `<i class="fa-regular fa-bookmark"></i>`;
+                }
+            });
+        }
+
+        function renderBookmarksUI() {
+            const book = getCurrentBook();
+            const sidebarContainer = document.getElementById('sidebar-bookmarks');
+            const drawerContainer = document.getElementById('drawer-bookmarks-list');
+            const countEl = document.getElementById('bookmark-count');
+
+            if (!book) {
+                countEl.textContent = '0';
+                return;
+            }
+
+            const valid = (book.bookmarks || []).filter(name => book.pages.some(p => p.name === name));
+            countEl.textContent = valid.length;
+
+            if (valid.length === 0) {
+                const empty = `<p class="text-xs opacity-50 px-3 py-2 italic">Nenhuma página marcada.</p>`;
+                sidebarContainer.innerHTML = empty;
+                drawerContainer.innerHTML = empty;
+                return;
+            }
+
+            const html = valid.map(name => {
+                const pageIndex = book.pages.findIndex(p => p.name === name);
+                return `
+                    <div onclick="openBookmarkedPage(${pageIndex})" class="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition">
+                        <div class="flex items-center gap-2.5 truncate">
+                            <i class="fa-solid fa-bookmark text-rose-500 text-xs"></i>
+                            <div class="truncate">
+                                <p class="text-xs font-semibold">Página ${pageIndex + 1}</p>
+                                <p class="text-[10px] opacity-60 truncate">${name}</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-arrow-right text-[10px] opacity-50"></i>
+                    </div>
+                `;
+            }).join('');
+
+            sidebarContainer.innerHTML = html;
+            drawerContainer.innerHTML = html;
+        }
+
+        function openBookmarkedPage(pageIndex) {
+            currentIndex = pageIndex;
+            currentSpread = pageIndex === 0 ? 0 : Math.ceil(pageIndex / 2);
+            if (currentMode !== 'single' && currentMode !== 'book') switchMode('single');
+            else { renderSingleReader(); renderBookReader(); }
+        }
+
+        function toggleBookmarksDrawer() {
+            document.getElementById('bookmarks-drawer').classList.toggle('hidden');
+        }
+
+        async function renderSingleReader() {
+            const book = getCurrentBook();
+            if (!book || book.pages.length === 0) return;
+            resetZoom();
+
+            if (currentIndex >= book.pages.length) currentIndex = 0;
+            const page = book.pages[currentIndex];
+
+            document.getElementById('single-book-title').textContent = book.title;
+            document.getElementById('single-img').src = page.url;
+            document.getElementById('single-filename').textContent = page.name;
+            document.getElementById('single-counter').textContent = `Pág. ${currentIndex + 1} de ${book.pages.length}`;
+            
+            const slider = document.getElementById('single-slider');
+            slider.max = book.pages.length - 1;
+            slider.value = currentIndex;
+
+            book.lastReadPage = currentIndex;
+            await saveBookToDB(book);
+            updateReaderBookmarkVisuals();
+        }
+
+        function changePageSingle(delta) {
+            const book = getCurrentBook();
+            if (!book) return;
+            const next = currentIndex + delta;
+            if (next >= 0 && next < book.pages.length) {
+                currentIndex = next;
+                renderSingleReader();
+            }
+        }
+
+        function jumpToPage(val) {
+            currentIndex = parseInt(val, 10);
+            renderSingleReader();
+        }
+
+        function getTotalSpreads() {
+            const book = getCurrentBook();
+            if (!book || book.pages.length === 0) return 0;
+            if (book.pages.length === 1) return 1;
+            return 1 + Math.ceil((book.pages.length - 1) / 2);
+        }
+
+        function getSpreadPages(spreadIndex) {
+            const book = getCurrentBook();
+            if (!book || book.pages.length === 0) return { left: null, right: null };
+            if (spreadIndex === 0) return { left: null, right: book.pages[0] || null, leftNum: null, rightNum: 1 };
+            const leftIdx = (spreadIndex - 1) * 2 + 1;
+            const rightIdx = leftIdx + 1;
+            return {
+                left: book.pages[leftIdx] || null,
+                right: book.pages[rightIdx] || null,
+                leftNum: leftIdx + 1,
+                rightNum: rightIdx + 1
+            };
+        }
+
+        async function renderBookReader() {
+            const book = getCurrentBook();
+            if (!book || book.pages.length === 0) return;
+            resetZoom();
+
+            const totalSpreads = getTotalSpreads();
+            if (currentSpread >= totalSpreads) currentSpread = Math.max(0, totalSpreads - 1);
+
+            const { left, right, leftNum, rightNum } = getSpreadPages(currentSpread);
+            const leftWrapper = document.getElementById('book-left-wrapper');
+            const rightWrapper = document.getElementById('book-right-wrapper');
+            const spine = document.getElementById('book-spine-el');
+
+            document.getElementById('book-reader-title').textContent = book.title;
+
+            if (left) {
+                leftWrapper.classList.remove('hidden');
+                document.getElementById('book-left-img').src = left.url;
+                document.getElementById('book-num-left').textContent = `PÁG. ${leftNum}`;
+            } else {
+                leftWrapper.classList.add('hidden');
+            }
+
+            if (right) {
+                rightWrapper.classList.remove('hidden');
+                document.getElementById('book-right-img').src = right.url;
+                document.getElementById('book-num-right').textContent = rightNum === 1 ? 'CAPA' : `PÁG. ${rightNum}`;
+            } else {
+                rightWrapper.classList.add('hidden');
+            }
+
+            if (left && right) spine.classList.remove('hidden');
+            else spine.classList.add('hidden');
+
+            const label = currentSpread === 0 ? 'Capa da Edição' : `Páginas ${leftNum} e ${right ? rightNum : ''}`;
+            document.getElementById('book-spread-label').textContent = label;
+            document.getElementById('book-counter').textContent = `Abertura ${currentSpread + 1} de ${totalSpreads}`;
+            
+            const progress = totalSpreads > 1 ? (currentSpread / (totalSpreads - 1)) * 100 : 100;
+            document.getElementById('book-progress-bar').style.width = `${progress}%`;
+
+            book.lastReadPage = currentSpread === 0 ? 0 : (currentSpread - 1) * 2 + 1;
+            await saveBookToDB(book);
+            updateReaderBookmarkVisuals();
+        }
+
+        function changeSpreadBook(delta) {
+            const total = getTotalSpreads();
+            const next = currentSpread + delta;
+            if (next >= 0 && next < total) {
+                currentSpread = next;
+                renderBookReader();
+            }
+        }
+
+        /* =========================================================================
+           8. NAVEGAÇÃO ENTRE MODOS, CONFIGURAÇÕES E APARÊNCIA
+           ========================================================================= */
+        function renderAll() {
+            renderShelf();
+            renderGrid();
+            renderBookmarksUI();
+        }
+
+        function switchMode(mode) {
+            const book = getCurrentBook();
+            if ((mode === 'single' || mode === 'book') && (!book || book.pages.length === 0)) {
+                alert('Esta obra ainda não possui páginas! Suba as imagens na aba "Páginas da Edição" primeiro.');
+                return switchMode('grid');
+            }
+
+            currentMode = mode;
+            ['shelf', 'grid', 'single', 'book', 'settings'].forEach(m => {
+                document.getElementById(`view-${m}`).classList.add('hidden');
+                document.getElementById(`nav-${m}`).classList.remove('nav-active');
+            });
+
+            document.getElementById(`view-${mode}`).classList.remove('hidden');
+            document.getElementById(`nav-${mode}`).classList.add('nav-active');
+
+            const titles = {
+                shelf: 'Estante Digital de Quadrinhos',
+                grid: book ? `Acervo // ${book.title}` : 'Páginas da Edição',
+                single: book ? `Leitor // ${book.title}` : 'Leitor Página Única',
+                book: book ? `Livro 3D // ${book.title}` : 'Leitor Livro 3D',
+                settings: 'Configurações & Hierarquia do Sistema'
+            };
+            document.getElementById('header-title').textContent = titles[mode];
+
+            if (mode === 'shelf') renderShelf();
+            if (mode === 'grid') renderGrid();
+            if (mode === 'single') renderSingleReader();
+            if (mode === 'book') renderBookReader();
+            if (mode === 'settings') renderUsersTable();
+        }
+
+        // Gestão de Usuários na Aba Configurações
+        document.getElementById('add-user-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!isDoom()) return;
+            const uName = document.getElementById('new-username').value.trim();
+            const uPass = document.getElementById('new-password').value.trim();
+            const uRole = document.getElementById('new-role').value;
+
+            if (usersList.some(u => u.username.toLowerCase() === uName.toLowerCase())) {
+                return alert('Já existe um usuário com este nome!');
+            }
+            usersList.push({ username: uName, pass: uPass, role: uRole });
+            saveUsersList();
+            e.target.reset();
+        });
+
+        function toggleUserRole(index) {
+            if (!isDoom()) return;
+            const target = usersList[index];
+            const doomCount = usersList.filter(u => u.role === 'DOUTOR DOOM').length;
+            if (target.role === 'DOUTOR DOOM' && doomCount <= 1) {
+                return alert('O sistema precisa de pelo menos 1 DOUTOR DOOM ativo!');
+            }
+            target.role = target.role === 'DOUTOR DOOM' ? 'HOMEM FORMIGA' : 'DOUTOR DOOM';
+            saveUsersList();
+            applySessionPermissions();
+        }
+
+        function deleteUserAccount(index) {
+            if (!isDoom()) return;
+            const target = usersList[index];
+            if (target.username === activeUser.username) return alert('Não é possível excluir sua própria conta ativa!');
+            usersList.splice(index, 1);
+            saveUsersList();
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('users-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = usersList.map((u, idx) => {
+                const isUserDoom = u.role === 'DOUTOR DOOM';
+                const badge = isUserDoom
+                    ? `<span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-[10px]">👑 DOUTOR DOOM</span>`
+                    : `<span class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold text-[10px]">🐜 HOMEM-FORMIGA</span>`;
+
+                const actions = isDoom()
+                    ? `<button onclick="toggleUserRole(${idx})" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium transition mr-2"><i class="fa-solid fa-repeat mr-1"></i> Status</button>
+                       <button onclick="deleteUserAccount(${idx})" class="px-2.5 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/40 text-rose-400 text-xs transition"><i class="fa-solid fa-trash-can"></i></button>`
+                    : `<span class="opacity-40 italic">Restrito</span>`;
+
+                return `
+                    <tr class="hover:bg-white/5 transition">
+                        <td class="py-3.5 px-4 font-bold">${u.username}</td>
+                        <td class="py-3.5 px-4">${badge}</td>
+                        <td class="py-3.5 px-4 opacity-75">${isUserDoom ? 'Criar obras, definir capas, subir páginas e gerenciar contas' : 'Apenas leitura e navegação na estante'}</td>
+                        <td class="py-3.5 px-4 text-right">${actions}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Temas Claro/Escuro e Cores
+        function setThemeMode(mode) {
+            document.body.classList.toggle('light-mode', mode === 'light');
+            localStorage.setItem('vertice_hq_theme_mode', mode);
+        }
+
+        function setAccentColor(accent, hover, soft, glow) {
+            const r = document.documentElement;
+            r.style.setProperty('--accent', accent);
+            r.style.setProperty('--accent-hover', hover);
+            r.style.setProperty('--accent-soft', soft);
+            r.style.setProperty('--accent-glow', glow);
+            localStorage.setItem('vertice_hq_accent', JSON.stringify({ accent, hover, soft, glow }));
+        }
+
+        function loadSavedAppearance() {
+            setThemeMode(localStorage.getItem('vertice_hq_theme_mode') || 'dark');
+            const savedAccent = JSON.parse(localStorage.getItem('vertice_hq_accent') || 'null');
+            if (savedAccent) setAccentColor(savedAccent.accent, savedAccent.hover, savedAccent.soft, savedAccent.glow);
+        }
+
+        // Tela Cheia, Zoom & Pan
+        function toggleStageFullscreen(stageId) {
+            const stageEl = document.getElementById(stageId);
+            if (!document.fullscreenElement) stageEl.requestFullscreen().catch(err => console.error(err));
+            else document.exitFullscreen();
+        }
+
+        function triggerReaderFullscreen() {
+            const book = getCurrentBook();
+            if (!book || book.pages.length === 0) return alert('Suba páginas na obra selecionada primeiro!');
+            if (currentMode !== 'single' && currentMode !== 'book') switchMode('book');
+            toggleStageFullscreen(currentMode === 'book' ? 'view-book' : 'view-single');
+        }
+
+        function applyZoomTransform() {
+            const targetId = currentMode === 'book' ? 'book-target' : 'single-target';
+            const target = document.getElementById(targetId);
+            if (!target) return;
+            target.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
+            target.style.cursor = currentZoom > 1 ? 'grab' : 'default';
+            const pct = `${Math.round(currentZoom * 100)}%`;
+            document.getElementById('zoom-level-single').textContent = pct;
+            document.getElementById('zoom-level-book').textContent = pct;
+        }
+
+        function adjustZoom(delta) {
+            currentZoom = Math.min(3, Math.max(0.5, currentZoom + delta));
+            if (currentZoom <= 1) { panX = 0; panY = 0; }
+            applyZoomTransform();
+        }
+
+        function resetZoom() {
+            currentZoom = 1; panX = 0; panY = 0;
+            applyZoomTransform();
+        }
+
+        function setupPanAndZoomEvents() {
+            ['single-target', 'book-target'].forEach(id => {
+                const el = document.getElementById(id);
+                el.addEventListener('mousedown', (e) => {
+                    if (currentZoom <= 1) return;
+                    isDragging = true;
+                    el.classList.add('dragging');
+                    startX = e.clientX - panX;
+                    startY = e.clientY - panY;
+                });
+                window.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    panX = e.clientX - startX;
+                    panY = e.clientY - startY;
+                    applyZoomTransform();
+                });
+                window.addEventListener('mouseup', () => {
+                    isDragging = false;
+                    el.classList.remove('dragging');
+                });
+                el.parentElement.addEventListener('wheel', (e) => {
+                    if (currentMode !== 'single' && currentMode !== 'book') return;
+                    e.preventDefault();
+                    adjustZoom(e.deltaY < 0 ? 0.15 : -0.15);
+                }, { passive: false });
+            });
+        }
+
+        function cycleReaderTheme() {
+            readerThemeIndex = (readerThemeIndex + 1) % readerThemes.length;
+            [document.getElementById('view-single'), document.getElementById('view-book')].forEach(st => {
+                st.classList.remove('theme-oled', 'theme-sepia');
+                if (readerThemes[readerThemeIndex] !== 'default') st.classList.add(readerThemes[readerThemeIndex]);
+            });
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (currentMode !== 'single' && currentMode !== 'book') return;
+            if (e.key === 'ArrowRight') currentMode === 'single' ? changePageSingle(1) : changeSpreadBook(1);
+            else if (e.key === 'ArrowLeft') currentMode === 'single' ? changePageSingle(-1) : changeSpreadBook(-1);
+            else if (e.key.toLowerCase() === 'f') toggleStageFullscreen(currentMode === 'book' ? 'view-book' : 'view-single');
+            else if (e.key.toLowerCase() === 'b') toggleCurrentBookmark();
+        });
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            loadSavedAppearance();
+            await initDatabase();
+            await hydrateLibrary();
+            applySessionPermissions();
+            setupPanAndZoomEvents();
+        });
+    </script>
+</body>
+</html>
