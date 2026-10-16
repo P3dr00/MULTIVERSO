@@ -1,0 +1,23 @@
+VÉRTICE HQ - CONFIGURAÇÕES E USUÁRIOS ONLINE
+
+ARQUIVOS:
+1. VERTICE_HQ_USUARIOS_SUPABASE.html - nova interface HTML
+2. VERTICE_USERS_EDGE_FUNCTION.ts - função administrativa no Supabase
+
+INSTALAÇÃO (OBRIGATÓRIA PARA CRIAR USUÁRIOS):
+1. Abra o painel do seu projeto Supabase.
+2. Acesse Edge Functions e crie uma função chamada exatamente: vertice-users.
+3. Insira o código de VERTICE_USERS_EDGE_FUNCTION.ts (arquivo index.ts da função).
+4. Faça Deploy. Ative a verificação do JWT para a função, quando a opção estiver disponível.
+5. Não configure a service_role key no HTML ou no GitHub. A função usa exclusivamente as variáveis de ambiente internas do Supabase.
+6. Publique o HTML como index.html no GitHub Pages depois de testar.
+7. Entre como administrador e abra Configurações → Usuários & acessos.
+8. Crie uma conta com e-mail, nome e senha temporária. Confira o cadastro em Supabase Authentication → Users.
+
+OBSERVAÇÕES:
+- A interface não cria contas diretamente usando uma chave pública, por razões de segurança.
+- A função exige login Supabase e consulta public.admins antes de qualquer administração.
+- Administrador não pode remover ou despromover a própria conta ativa.
+- Excluir uma conta do Supabase Auth pode excluir o perfil e progresso associado por cascata. Faça backup antes de excluir.
+- Antes da implantação, habilite HTTPS (GitHub Pages) e teste o fluxo em ambiente de teste.
+- Se aparecer erro na função vertice-users, confira nome, implantação e variáveis de ambiente do projeto.

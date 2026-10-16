@@ -236,6 +236,19 @@
 @media(max-width:900px){#app-sidebar{position:fixed;left:0;top:0;width:min(290px,85vw);z-index:60;transform:translateX(-105%);transition:transform .2s ease;background:var(--bg-floating)}#app-sidebar.sidebar-open{transform:translateX(0)}.menu-toggle{display:inline-flex!important}header{flex-wrap:wrap}#header-title{max-width:none;font-size:14px}header>div:last-child{width:100%;justify-content:flex-end;flex-wrap:wrap}.header-title-group{flex-basis:calc(100% - 64px)}.reader-stage>div:first-child{padding:10px}.reader-stage .glass-floating{padding:6px 10px}#single-filename{max-width:120px}#bookmarks-drawer{right:12px;bottom:72px;width:min(320px,calc(100vw - 24px))}}
 @media(max-width:600px){#view-shelf,#view-grid,#view-settings{padding:14px}#books-shelf-grid,#pages-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}#shelf-hero>div:last-child{padding:20px;gap:20px}#shelf-hero .w-40{width:120px}#hero-title{font-size:24px}#header-title{font-size:14px}header>div:last-child{justify-content:space-between}header button,header label{font-size:10px!important;padding:8px!important}.reader-stage>div:first-child>div:first-child{width:100%;justify-content:center}.reader-stage>div:first-child>div:last-child{width:100%;justify-content:center;gap:3px}.reader-stage .fullscreen-text{display:none}.reader-stage .glass-floating button{min-width:32px;min-height:34px;padding:5px}.reader-stage>div:last-child .glass-floating{gap:9px}#single-counter,#book-counter{font-size:10px}#single-slider{min-width:30px}#single-prev,#book-prev{left:6px;width:32px;height:44px;border-radius:12px}#single-next,#book-next{right:6px;width:32px;height:44px;border-radius:12px}#single-filename{max-width:125px}#book-spread-label{font-size:10px}#book-reader-title{max-width:135px}#view-settings>.max-w-5xl>.glass-panel{padding:18px}#view-settings table{min-width:640px}.trash-item{align-items:flex-start;flex-direction:column}#toast-region{right:12px;bottom:12px;width:calc(100vw - 24px)}#login-screen>.glass-panel{padding:26px}#book-modal>.glass-panel{padding:20px}#book-meta-form .aspect-\[2\/3\]{max-width:150px}#bookmarks-drawer{bottom:65px}.physical-book-cover{padding:10px 12px}.reader-stage>div:last-child:not(#bookmarks-drawer){padding:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+</style><style>
+#view-settings .glass-panel{box-shadow:0 16px 50px rgba(0,0,0,.10)}
+#view-settings .online-field{display:block;width:100%;min-height:42px;border:1px solid var(--border-color);border-radius:12px;padding:10px 12px;background:var(--card-bg,rgba(30,41,59,.30));color:var(--text-primary,inherit);font-size:13px;outline:none}
+#view-settings .online-field:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+#view-settings .online-field option{background:#202333;color:#fff}
+#view-settings #users-table-body td{padding:12px;border-bottom:1px solid var(--border-color)}
+#view-settings #users-table-body tr:last-child td{border-bottom:0}
+#view-settings .user-pill{display:inline-flex;padding:5px 9px;border-radius:100px;background:rgba(99,102,241,.12);font-size:11px;font-weight:700}
+#view-settings .user-pill.is-admin{background:rgba(245,158,11,.15)}
+#view-settings .user-row-actions{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+#view-settings .user-row-actions button{border:1px solid var(--border-color);border-radius:9px;padding:6px 9px;font-size:11px}
+#view-settings .user-row-actions button:hover{border-color:var(--accent)}
+#view-settings .user-row-actions button.danger{color:#fb7185}
 </style></head>
 <body class="min-h-screen flex flex-col">
 <div class="ambient-bg"></div>
@@ -664,7 +677,7 @@
 </div>
 </section>
 <!-- ================= MODO 4: CONFIGURAÇÕES (TEMAS & USUÁRIOS) ================= -->
-<section class="hidden flex-1 overflow-y-auto p-8" id="view-settings">
+<section class="hidden flex-1 overflow-y-auto p-4 md:p-8" id="view-settings">
 <div class="max-w-5xl mx-auto space-y-8">
 <div class="glass-panel rounded-3xl p-6 space-y-6">
 <div class="flex items-center justify-between border-b pb-4" style="border-color: var(--border-color)">
@@ -700,61 +713,31 @@
 </div>
 </div>
 </div>
-<!-- GERENCIAMENTO DE USUÁRIOS E HIERARQUIA -->
-<div class="glass-panel rounded-3xl p-6 space-y-6">
-<div class="flex flex-wrap items-center justify-between gap-4 border-b pb-4" style="border-color: var(--border-color)">
-<div>
-<h3 class="font-display font-bold text-base flex items-center gap-2">
-<i aria-hidden="true" class="fa-solid fa-users-gear" style="color: var(--accent)"></i> Controle de Credenciais &amp; Hierarquia
-                                </h3>
-<p class="text-xs opacity-60"><strong>Doutor Doom:</strong> Cria obras, edita capa/metadados, sobe páginas e gerencia usuários • <strong>Homem-Formiga:</strong> Leitor</p>
+<!-- CONTAS ONLINE - Supabase Auth -->
+<section class="glass-panel rounded-3xl p-6 space-y-5" id="online-users-panel">
+<div class="flex flex-wrap items-center justify-between gap-3 border-b pb-4" style="border-color:var(--border-color)">
+<div><h3 class="font-display font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-shield-halved" style="color:var(--accent)"></i> Usuários &amp; acessos</h3><p class="text-xs opacity-60 mt-2">Identidades sincronizadas com Supabase Authentication, com acesso individual à biblioteca.</p></div>
+<span id="settings-role-status" class="role-badge reader">Leitor</span>
 </div>
-<span class="text-xs font-bold px-3 py-1 rounded-full" id="settings-role-status"></span>
-</div>
-<div class="hidden p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-3" id="users-locked-banner">
-<i aria-hidden="true" class="fa-solid fa-shield-halved text-lg"></i>
-<span>Apenas usuários com status <strong>DOUTOR DOOM</strong> podem adicionar contas, remover integrantes ou alterar patentes.</span>
-</div>
-<form class="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-black/15 border" id="add-user-form" style="border-color: var(--border-color)">
-<div>
-<label class="block text-[10px] font-bold uppercase opacity-60 mb-1" for="new-username">Nome de Usuário</label>
-<input class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-xs outline-none" id="new-username" maxlength="60" placeholder="Ex: scott_lang" required="" type="text"/>
-</div>
-<div>
-<label class="block text-[10px] font-bold uppercase opacity-60 mb-1" for="new-password">Senha de Acesso</label>
-<input autocomplete="new-password" class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-xs outline-none" id="new-password" maxlength="200" minlength="8" placeholder="Senha..." required="" type="password"/>
-</div>
-<div>
-<label class="block text-[10px] font-bold uppercase opacity-60 mb-1" for="new-role">Patente / Status</label>
-<select class="w-full bg-slate-900 border border-white/15 text-white rounded-xl px-3 py-2 text-xs outline-none" id="new-role">
-<option value="HOMEM FORMIGA">🐜 HOMEM-FORMIGA (Leitor)</option>
-<option value="DOUTOR DOOM">👑 DOUTOR DOOM (Admin Total)</option>
-</select>
-</div>
-<div class="flex items-end">
-<button class="w-full py-2 px-4 rounded-xl btn-accent font-semibold text-xs flex items-center justify-center gap-2" type="submit">
-<i aria-hidden="true" class="fa-solid fa-user-plus"></i> Cadastrar Conta
-                                </button>
-</div>
+<div id="settings-identity" class="rounded-2xl p-4 border" style="border-color:var(--border-color);background:var(--surface-secondary,rgba(0,0,0,.12))"><p class="text-[10px] font-bold uppercase tracking-widest opacity-60">Minha conta conectada</p><div class="font-semibold text-sm mt-1" id="settings-my-email">—</div><div class="text-xs opacity-60 mt-1" id="settings-my-uuid">—</div></div>
+<div id="users-locked-banner" class="hidden rounded-2xl p-4 border text-xs" style="border-color:var(--border-color)"><i class="fa-solid fa-lock mr-2"></i>Somente administradores gerenciam outras contas. Seu perfil e sua senha permanecem disponíveis.</div>
+<div id="online-admin-area">
+<div class="flex flex-wrap items-center justify-between gap-2"><h4 class="font-semibold text-sm">Diretório de usuários <span class="opacity-50" id="online-user-total"></span></h4><button type="button" class="dialog-button" onclick="perform(()=>refreshOnlineUsers())"><i class="fa-solid fa-rotate"></i> Atualizar</button></div>
+<form id="add-user-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl border" style="border-color:var(--border-color)">
+<div><label for="new-username" class="block text-xs font-semibold opacity-70 mb-2">Nome de exibição</label><input id="new-username" type="text" maxlength="60" minlength="2" required placeholder="Ex.: Scott Lang" class="online-field"/></div>
+<div><label for="new-email" class="block text-xs font-semibold opacity-70 mb-2">E-mail da conta</label><input id="new-email" type="email" autocomplete="off" required placeholder="usuario@email.com" class="online-field"/></div>
+<div><label for="new-password" class="block text-xs font-semibold opacity-70 mb-2">Senha provisória</label><input id="new-password" type="password" autocomplete="new-password" minlength="8" required placeholder="Mínimo 8 caracteres" class="online-field"/></div>
+<div><label for="new-role" class="block text-xs font-semibold opacity-70 mb-2">Nível de acesso</label><select id="new-role" class="online-field"><option value="HOMEM FORMIGA">Leitor • HOMEM-FORMIGA</option><option value="DOUTOR DOOM">Administrador • DOUTOR DOOM</option></select></div>
+<div class="sm:col-span-2 flex flex-wrap items-center justify-between gap-3"><p class="text-xs opacity-60">A conta será criada diretamente em Authentication → Users.</p><button type="submit" class="dialog-button btn-accent"><i class="fa-solid fa-user-plus"></i> Criar usuário no Supabase</button></div>
 </form>
-<div class="overflow-x-auto">
-<table class="w-full text-left border-collapse">
-<thead>
-<tr class="border-b text-[11px] uppercase opacity-60" style="border-color: var(--border-color)">
-<th class="py-3 px-4">Integrante</th>
-<th class="py-3 px-4">Status Atual</th>
-<th class="py-3 px-4">Permissões</th>
-<th class="py-3 px-4 text-right">Ações (Doutor Doom)</th>
-</tr>
-</thead>
-<tbody class="divide-y text-xs" id="users-table-body" style="border-color: var(--border-color)"></tbody>
-</table>
-</div>
-</div>
+<div id="online-user-message" class="text-xs opacity-70" role="status">Atualize para carregar as contas cadastradas.</div>
+<div class="overflow-x-auto rounded-2xl border" style="border-color:var(--border-color)"><table class="w-full text-left text-xs"><thead><tr class="border-b opacity-60" style="border-color:var(--border-color)"><th class="p-3">Usuário</th><th class="p-3">Perfil</th><th class="p-3">Situação</th><th class="p-3 text-right">Gestão</th></tr></thead><tbody id="users-table-body"></tbody></table></div>
+<p class="text-xs opacity-60"><i class="fa-solid fa-circle-info mr-1"></i> Ações de administração são validadas no servidor. Remover um usuário exclui a conta do Auth e pode eliminar suas preferências de leitura.</p>
+</div></section>
 <section class="glass-panel rounded-3xl p-6 space-y-4"><h3 class="font-display font-bold">Sua senha</h3><form class="password-form" id="change-password-form"><label>Senha atual<input autocomplete="current-password" id="current-password" required="" type="password"/></label><label>Nova senha<input autocomplete="new-password" id="change-password" maxlength="200" minlength="8" required="" type="password"/></label><label>Confirme a nova senha<input autocomplete="new-password" id="change-password-confirm" maxlength="200" minlength="8" required="" type="password"/></label><button class="dialog-button btn-accent" type="submit">Alterar senha</button></form></section>
 <section class="glass-panel rounded-3xl p-6 space-y-4"><h3 class="font-display font-bold">Backup e transferência</h3><p class="text-sm opacity-70">As obras são sincronizadas com o Supabase após o login. Exporte backups regularmente e migre as obras antigas pelo botão abaixo.</p><div class="flex flex-wrap gap-3" id="backup-admin"><button class="dialog-button btn-accent" onclick="perform(() =&gt; exportBackup())"><i class="fa-solid fa-download"></i> Exportar acervo completo</button><button class="dialog-button" onclick="perform(() =&gt; document.getElementById('backup-input').click())"><i class="fa-solid fa-upload"></i> Restaurar acervo</button><input accept="application/json,.json" hidden="" id="backup-input" type="file"/></div><p class="text-xs opacity-60">O backup do acervo inclui as imagens e a leitura da sua conta. Senhas e lixeira não são exportadas.</p><div class="flex flex-wrap gap-3"><button class="dialog-button" onclick="perform(() =&gt; exportReading())">Exportar minha leitura</button><button class="dialog-button" onclick="perform(() =&gt; document.getElementById('reading-input').click())">Restaurar minha leitura</button><input accept="application/json,.json" hidden="" id="reading-input" type="file"/></div><p class="text-xs opacity-60">O arquivo de leitura atualiza obras com a mesma identificação. Cada conta tem seus próprios marcadores e preferências.</p></section>
 <section class="glass-panel rounded-3xl p-6 space-y-4" id="trash-panel"><div class="flex flex-wrap items-center justify-between gap-3"><h3 class="font-display font-bold">Lixeira e versões anteriores</h3><button class="dialog-button danger" onclick="perform(() =&gt; emptyTrash())">Esvaziar lixeira</button></div><p class="text-sm opacity-70">Recupere uma versão anterior como uma nova obra, preservando a edição atual.</p><div class="space-y-3" id="trash-list"></div></section>
-<p class="text-xs opacity-60 p-2">Edição local • As contas organizam o acesso neste navegador. Um serviço com autenticação no servidor é necessário para disponibilizar contas e acervo pela internet.</p></div>
+<p class="text-xs opacity-60 p-2">VÉRTICE HQ Cloud • Identidade, catálogo e preferências sincronizados pelo Supabase.</p></div>
 </section>
 <!-- GAVETA FLUTUANTE DE MARCADORES -->
 <div aria-label="Marcadores da edição" class="hidden fixed right-6 bottom-20 z-50 w-72 glass-floating rounded-2xl p-4 border shadow-2xl" id="bookmarks-drawer" role="region" style="border-color: var(--border-color)">
@@ -1048,6 +1031,65 @@ initialize=async function(){try{
 };
 
 $('login-form').addEventListener('submit',function(e){e.stopImmediatePropagation();return handleLogin(e);},true);
+
+
+// Gerenciamento de contas cloud: criação real em auth.users via Edge Function segura.
+let remoteUsers=[], remoteUsersLoaded=false;
+async function manageCloudUsers(action,payload={}){
+ requireAdmin();
+ if(!sbSession?.access_token)throw new Error('Faça login novamente.');
+ const response=await fetch(SB_URL+'/functions/v1/vertice-users',{method:'POST',headers:sbHeaders({'Content-Type':'application/json'}),body:JSON.stringify({action,...payload})});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(data.error||data.message||'Erro '+response.status+' na função vertice-users. Verifique a instalação da função no Supabase.');
+ return data;
+}
+renderUsersTable=function(){
+ const tbody=$('users-table-body');if(!tbody)return;
+ if(!sbAdmin){tbody.innerHTML='<tr><td colspan="4" class="p-4 opacity-60">Apenas administradores podem consultar o diretório.</td></tr>';return;}
+ if(!remoteUsersLoaded){tbody.innerHTML='<tr><td colspan="4" class="p-4 opacity-60">Clique em Atualizar para carregar os usuários do Supabase.</td></tr>';return;}
+ if(!remoteUsers.length){tbody.innerHTML='<tr><td colspan="4" class="p-4 opacity-60">Nenhuma conta encontrada.</td></tr>';return;}
+ tbody.innerHTML=remoteUsers.map((u,i)=>{
+ const isSelf=u.id===sbUser?.id;const role=u.is_admin?'👑 DOUTOR DOOM':'🐜 HOMEM-FORMIGA';
+ return `<tr><td><div class="font-semibold">${escapeHTML(u.username||'Sem nome')}</div><div class="text-[11px] opacity-60">${escapeHTML(u.email||'')}</div></td><td><span class="user-pill ${u.is_admin?'is-admin':''}">${role}</span></td><td><span class="opacity-75">${u.confirmed?'Ativo':'Pendente'}</span></td><td><div class="user-row-actions">${isSelf?'<span class="opacity-50">Conta atual</span>':`<button type="button" data-action="role-user" data-index="${i}">Alterar perfil</button><button type="button" class="danger" data-action="delete-user" data-index="${i}">Excluir</button>`}</div></td></tr>`;
+ }).join('');
+};
+async function refreshOnlineUsers(){
+ requireAdmin();const note=$('online-user-message');note.textContent='Consultando usuários no Supabase…';
+ try{const data=await manageCloudUsers('list');remoteUsers=data.users||[];remoteUsersLoaded=true;$('online-user-total').textContent='('+remoteUsers.length+')';note.textContent=remoteUsers.length+' conta(s) localizada(s) em Authentication → Users.';renderUsersTable();}
+ catch(error){note.textContent='Não foi possível carregar: '+error.message;renderUsersTable();throw error;}
+}
+addUser=async function(e){e.preventDefault();requireAdmin();const submit=e.target.querySelector('[type=submit]');if(submit)submit.disabled=true;
+ try{const username=$('new-username').value.trim(),email=$('new-email').value.trim().toLowerCase(),password=$('new-password').value,role=$('new-role').value;
+ if(username.length<2||username.length>60)throw Error('O nome precisa ter entre 2 e 60 caracteres.');
+ if(password.length<8)throw Error('Use uma senha provisória de pelo menos 8 caracteres.');
+ await manageCloudUsers('create',{username,email,password,admin:role===ADMIN});e.target.reset();await refreshOnlineUsers();notify('Conta criada no Supabase Auth.','success');
+ }finally{if(submit)submit.disabled=false;}
+};
+toggleUserRole=async function(index){requireAdmin();const u=remoteUsers[index];if(!u)return;if(u.id===sbUser.id)throw Error('Não altere a própria conta ativa.');
+ if(await ask('Alterar acesso',`Alterar ${u.email} para ${u.is_admin?'Leitor':'Administrador'}?`,[['cancel','Cancelar'],['ok','Alterar']])!=='ok')return;
+ await manageCloudUsers('role',{user_id:u.id,admin:!u.is_admin});await refreshOnlineUsers();notify('Permissões atualizadas.','success');
+};
+deleteUserAccount=async function(index){requireAdmin();const u=remoteUsers[index];if(!u)return;if(u.id===sbUser.id)throw Error('Não é possível excluir a própria conta.');
+ if(await ask('Excluir usuário',`Excluir permanentemente ${u.email} do Supabase Auth? O histórico pessoal poderá ser perdido.`,[['cancel','Cancelar'],['ok','Excluir definitivamente']])!=='ok')return;
+ await manageCloudUsers('delete',{user_id:u.id});await refreshOnlineUsers();notify('Usuário excluído do Supabase.','success');
+};
+changeOwnPassword=async function(e){e.preventDefault();const current=$('current-password').value,pass=$('change-password').value;
+ if(!sbUser||!sbSession)throw Error('Entre novamente.');if(pass.length<8)throw Error('A nova senha precisa ter no mínimo 8 caracteres.');
+ if(pass!==$('change-password-confirm').value)throw Error('A confirmação não confere.');
+ // Confirm the old credential without replacing the current session.
+ await sbRequest('/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:sbUser.email,password:current})});
+ await sbRequest('/auth/v1/user',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})});
+ e.target.reset();notify('Senha atualizada no Supabase Auth.','success');
+};
+const originalCloudPermissions=applySessionPermissions;
+applySessionPermissions=function(){originalCloudPermissions();if(!activeUser)return;
+ const a=$('online-admin-area');if(a)a.classList.toggle('hidden',!sbAdmin);
+ $('add-user-form')?.classList.toggle('hidden',!sbAdmin);
+ $('settings-my-email').textContent=sbUser?.email||activeUser.username;
+ $('settings-my-uuid').textContent='Identificador: '+(sbUser?.id||'—');
+};
+const originalCloudSwitchMode=switchMode;
+switchMode=async function(mode){await originalCloudSwitchMode(mode);if(mode==='settings'&&sbAdmin){await refreshOnlineUsers().catch(err=>console.warn(err));}};
 
 window.addEventListener('DOMContentLoaded',initialize);
 </script></body>
