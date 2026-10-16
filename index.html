@@ -752,7 +752,7 @@
 </div>
 </div>
 <section class="glass-panel rounded-3xl p-6 space-y-4"><h3 class="font-display font-bold">Sua senha</h3><form class="password-form" id="change-password-form"><label>Senha atual<input autocomplete="current-password" id="current-password" required="" type="password"/></label><label>Nova senha<input autocomplete="new-password" id="change-password" maxlength="200" minlength="8" required="" type="password"/></label><label>Confirme a nova senha<input autocomplete="new-password" id="change-password-confirm" maxlength="200" minlength="8" required="" type="password"/></label><button class="dialog-button btn-accent" type="submit">Alterar senha</button></form></section>
-<section class="glass-panel rounded-3xl p-6 space-y-4"><h3 class="font-display font-bold">Backup e transferência</h3><p class="text-sm opacity-70">Seu acervo fica neste navegador. Para levar as HQs a outro dispositivo, exporte um backup e restaure-o lá. Não há sincronização automática.</p><div class="flex flex-wrap gap-3" id="backup-admin"><button class="dialog-button btn-accent" onclick="perform(() =&gt; exportBackup())"><i class="fa-solid fa-download"></i> Exportar acervo completo</button><button class="dialog-button" onclick="perform(() =&gt; document.getElementById('backup-input').click())"><i class="fa-solid fa-upload"></i> Restaurar acervo</button><input accept="application/json,.json" hidden="" id="backup-input" type="file"/></div><p class="text-xs opacity-60">O backup do acervo inclui as imagens e a leitura da sua conta. Senhas e lixeira não são exportadas.</p><div class="flex flex-wrap gap-3"><button class="dialog-button" onclick="perform(() =&gt; exportReading())">Exportar minha leitura</button><button class="dialog-button" onclick="perform(() =&gt; document.getElementById('reading-input').click())">Restaurar minha leitura</button><input accept="application/json,.json" hidden="" id="reading-input" type="file"/></div><p class="text-xs opacity-60">O arquivo de leitura atualiza obras com a mesma identificação. Cada conta tem seus próprios marcadores e preferências.</p></section>
+<section class="glass-panel rounded-3xl p-6 space-y-4"><h3 class="font-display font-bold">Backup e transferência</h3><p class="text-sm opacity-70">As obras são sincronizadas com o Supabase após o login. Exporte backups regularmente e migre as obras antigas pelo botão abaixo.</p><div class="flex flex-wrap gap-3" id="backup-admin"><button class="dialog-button btn-accent" onclick="perform(() =&gt; exportBackup())"><i class="fa-solid fa-download"></i> Exportar acervo completo</button><button class="dialog-button" onclick="perform(() =&gt; document.getElementById('backup-input').click())"><i class="fa-solid fa-upload"></i> Restaurar acervo</button><input accept="application/json,.json" hidden="" id="backup-input" type="file"/></div><p class="text-xs opacity-60">O backup do acervo inclui as imagens e a leitura da sua conta. Senhas e lixeira não são exportadas.</p><div class="flex flex-wrap gap-3"><button class="dialog-button" onclick="perform(() =&gt; exportReading())">Exportar minha leitura</button><button class="dialog-button" onclick="perform(() =&gt; document.getElementById('reading-input').click())">Restaurar minha leitura</button><input accept="application/json,.json" hidden="" id="reading-input" type="file"/></div><p class="text-xs opacity-60">O arquivo de leitura atualiza obras com a mesma identificação. Cada conta tem seus próprios marcadores e preferências.</p></section>
 <section class="glass-panel rounded-3xl p-6 space-y-4" id="trash-panel"><div class="flex flex-wrap items-center justify-between gap-3"><h3 class="font-display font-bold">Lixeira e versões anteriores</h3><button class="dialog-button danger" onclick="perform(() =&gt; emptyTrash())">Esvaziar lixeira</button></div><p class="text-sm opacity-70">Recupere uma versão anterior como uma nova obra, preservando a edição atual.</p><div class="space-y-3" id="trash-list"></div></section>
 <p class="text-xs opacity-60 p-2">Edição local • As contas organizam o acesso neste navegador. Um serviço com autenticação no servidor é necessário para disponibilizar contas e acervo pela internet.</p></div>
 </section>
@@ -936,6 +936,119 @@ window.addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnV
 window.addEventListener('unhandledrejection',e=>{console.error(e.reason);notify(errorMessage(e.reason),'error');e.preventDefault();});
 setInterval(()=>{if(activeUser)perform(async()=>{if(!currentAccount()){await logout();notify('Sua sessão expirou. Entre novamente.');}});},30000);
 async function initialize(){try{if(!crypto.subtle)throw new Error('Abra este arquivo diretamente no navegador ou por HTTPS/localhost para usar o acesso protegido.');$('startup-text').textContent='Preparando seu acervo…';await initDatabase();await migrateBooks();await hydrateLibrary();await loadUsers();let stored=null;try{stored=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null');}catch{sessionStorage.removeItem(SESSION_KEY);}if(usersList.length&&stored&&typeof stored.username==='string'&&Number.isFinite(stored.expiresAt)){session=stored;activeUser=currentAccount();if(!activeUser)session=null;}initialized=true;setupPanAndZoomEvents();if(activeUser){await loadProfile();applySessionPermissions();await switchMode('shelf');}else{setAuthMode(usersList.length?'login':'setup');applySessionPermissions();}$('startup-overlay').hidden=true;$('login-submit').disabled=false;}catch(error){console.error(error);$('startup-text').textContent=errorMessage(error);$('startup-retry').hidden=false;$('startup-title').textContent='Não foi possível abrir o acervo';$('startup-note').textContent='Nenhuma obra foi apagada. Feche outras abas e tente novamente. Se o cadastro estiver danificado, preserve os dados do navegador antes de restaurar seu backup.';}}
+// VERTICE HQ - Supabase integration (GitHub Pages). Publishable key only.
+const SB_URL='https://xknjfxlriqjtezerakiq.supabase.co';
+const SB_KEY='sb_publishable_2v0phvs4L62Xy9GmTOfl2w_xS79EnBV';
+const SB_SESSION='vertice_hq_supabase_session_v1';
+let sbSession=null, sbUser=null, sbAdmin=false;
+function sbHeaders(extra={}){return {'apikey':SB_KEY,'Authorization':'Bearer '+(sbSession?.access_token||SB_KEY),...extra};}
+async function sbRequest(path,opts={}){
+ const res=await fetch(SB_URL+path,{...opts,headers:sbHeaders(opts.headers||{})});
+ if(!res.ok){let info={};try{info=await res.json();}catch{}throw new Error(info.message||info.msg||info.error_description||info.error||('Supabase HTTP '+res.status));}
+ if(res.status===204)return null;
+ const text=await res.text();if(!text)return null;try{return JSON.parse(text);}catch{return text;}
+}
+async function sbRest(table,query='',opts={}){return sbRequest('/rest/v1/'+table+(query?'?'+query:''),opts);}
+async function sbRefresh(){
+ if(!sbSession?.refresh_token)return false;
+ try{const s=await sbRequest('/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:sbSession.refresh_token})});sbSaveSession(s);return true;}
+ catch{sbSaveSession(null);return false;}
+}
+function sbSaveSession(data){sbSession=data?.access_token?data:null;localStorage.setItem(SB_SESSION,JSON.stringify(sbSession));}
+async function sbRestore(){try{sbSession=JSON.parse(localStorage.getItem(SB_SESSION)||'null');}catch{sbSaveSession(null);}if(!sbSession)return false;return await sbRefresh();}
+async function sbIdentify(){
+ const u=await sbRequest('/auth/v1/user');sbUser=u;
+ const result=await sbRest('admins','select=user_id&user_id=eq.'+encodeURIComponent(u.id));sbAdmin=Array.isArray(result)&&result.length>0;
+ activeUser={username:u.email||u.id,role:sbAdmin?ADMIN:READER,epoch:1};
+ usersList=[activeUser];session={username:activeUser.username,epoch:1,expiresAt:Date.now()+86400000};
+}
+// The authorization truth is RLS, never the visible user-role badge.
+currentAccount=function(){return sbSession&&sbUser?activeUser:null;};
+requireAdmin=function(){if(!sbAdmin||!sbUser)throw new Error('Somente administradores autorizados no Supabase podem editar o acervo.');};
+setAuthMode=function(){authMode='login';$('login-heading').textContent='Entre na sua estante';$('login-help').textContent='Use o e-mail e a senha cadastrados no Supabase.';$('login-submit-label').textContent='Entrar na Plataforma';$('confirm-password-row').hidden=true;$('login-username-row').hidden=false;$('login-user').type='email';$('login-user').placeholder='seu@email.com';$('login-user').autocomplete='email';$('login-pass').autocomplete='current-password';$('login-pass').minLength=1;$('login-error').classList.add('hidden');};
+handleLogin=async function(e){e.preventDefault();if(authBusy||!initialized)return;authBusy=true;$('login-submit').disabled=true;try{
+ const email=$('login-user').value.trim(),password=$('login-pass').value;
+ const login=await sbRequest('/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+ sbSaveSession(login);await sbIdentify();await sbLoadCatalog();await loadProfile();applySessionPermissions();await switchMode('shelf');$('login-form').reset();notify('Conectado ao Supabase.','success');
+ }catch(error){showLoginError(error.message||'Não foi possível entrar.');}finally{authBusy=false;$('login-submit').disabled=false;}};
+logout=async function(){await writeQueue.catch(()=>{});if(sbSession)await sbRequest('/auth/v1/logout',{method:'POST'}).catch(()=>{});sbSaveSession(null);sbUser=null;sbAdmin=false;session=null;activeUser=null;profile=null;readingStates.clear();closeBookModal();$('bookmarks-drawer').classList.add('hidden');$('app-sidebar').classList.remove('sidebar-open');if(document.fullscreenElement)await document.exitFullscreen().catch(()=>{});currentMode='shelf';applyAppearance();applySessionPermissions();setAuthMode('login');$('login-form').reset();$('login-user').focus();};
+// Sync catalogue from the server. Local IndexedDB is retained as a cache AND as an unmigrated backup.
+async function sbDownload(path){const res=await fetch(SB_URL+'/storage/v1/object/vertice-hq/'+path,{headers:sbHeaders()});if(!res.ok)throw Error('Não foi possível carregar a imagem '+path+' ('+res.status+').');return res.blob();}
+async function sbUpload(path,blob){await sbRequest('/storage/v1/object/vertice-hq/'+path,{method:'POST',headers:{'Content-Type':blob.type||'application/octet-stream','x-upsert':'true'},body:blob});}
+async function sbLoadCatalog(){
+ const books=await sbRest('books','select=*&order=updated_at.desc');
+ const pages=await sbRest('book_pages','select=*&order=page_order.asc');
+ const grouped=new Map();for(const p of pages||[]){if(!grouped.has(p.book_id))grouped.set(p.book_id,[]);grouped.get(p.book_id).push(p);}
+ const next=[];
+ for(const b of books||[]){
+  const cached=await dbGet(STORE_BOOKS,b.id);const same=cached&&cached.revision===b.revision&&Array.isArray(cached.pages)&&cached.pages.length===(grouped.get(b.id)||[]).length;
+  if(same){next.push(cached);continue;}
+  const remotePages=[];for(const p of grouped.get(b.id)||[])remotePages.push({id:p.id,name:p.name,blob:await sbDownload(p.storage_path)});
+  const coverBlob=b.cover_path?await sbDownload(b.cover_path):null;
+  const raw={id:b.id,title:b.title,author:b.author,genre:b.genre,universe:b.universe,status:b.status,synopsis:b.synopsis,coverPageId:b.cover_page_id,coverBlob,pages:remotePages,revision:b.revision,updatedAt:Date.parse(b.updated_at)||Date.now()};
+  await dbPut(STORE_BOOKS,raw);next.push(raw);
+ }
+ library.forEach(releaseBook);library=next.map(hydrateBook).sort((a,b)=>b.updatedAt-a.updatedAt);
+}
+const localCommitBook=commitBook;
+commitBook=async function(book,options={}){
+ requireAdmin();const expected=book.revision||0,revision=expected+1;
+ if(options.remove){
+  await sbRest('books','id=eq.'+encodeURIComponent(book.id),{method:'DELETE'});
+  await localCommitBook(book,options);return;
+ }
+ const existing=await sbRest('books','select=revision&id=eq.'+encodeURIComponent(book.id));
+ if(existing.length&&existing[0].revision!==expected)throw Error('Esta obra foi alterada em outro dispositivo. Recarregue antes de editar.');
+ const root='books/'+encodeURIComponent(book.id)+'/r'+revision+'/';
+ let coverPath=null;if(book.coverBlob){coverPath=root+'cover';await sbUpload(coverPath,book.coverBlob);}
+ const remotePages=[];
+ for(let i=0;i<book.pages.length;i++){
+  const p=book.pages[i],path=root+'page-'+String(i).padStart(5,'0')+'-'+encodeURIComponent(p.id);
+  await sbUpload(path,p.blob);remotePages.push({id:p.id,book_id:book.id,name:p.name,page_order:i,storage_path:path});
+ }
+ await sbRest('books','on_conflict=id',{method:'POST',headers:{'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:book.id,title:book.title,author:book.author,genre:book.genre,universe:book.universe,status:book.status,synopsis:book.synopsis,cover_page_id:book.coverPageId||null,cover_path:coverPath,revision,updated_at:new Date().toISOString()})});
+ await sbRest('book_pages','book_id=eq.'+encodeURIComponent(book.id),{method:'DELETE'});
+ if(remotePages.length)await sbRest('book_pages','',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(remotePages)});
+ if(!options.skipLocal)await localCommitBook(book,options);
+};
+const localQueueReading=queueReading;
+queueReading=function(book,state){
+ const p=localQueueReading(book,state);
+ writeQueue=writeQueue.then(async()=>{if(!sbUser)return;await sbRest('reading_states','on_conflict=user_id,book_id',{method:'POST',headers:{'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},body:JSON.stringify({user_id:sbUser.id,book_id:book.id,page_id:state.pageId||null,bookmarks:state.bookmarks||[],started:!!state.started,updated_at:new Date().toISOString()})});});
+ writeQueue.catch(e=>notify('Progresso não sincronizado: '+e.message,'error'));return writeQueue;
+};
+loadProfile=async function(){
+ const me=sbUser.id;let rows=await sbRest('profiles','select=*&id=eq.'+me);
+ if(!rows.length){await sbRest('profiles','',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:me,username:activeUser.username})});rows=await sbRest('profiles','select=*&id=eq.'+me);}
+ const r=rows[0]||{};profile={id:me,theme:r.theme||'dark',accent:r.accent||DEFAULT_ACCENT[0],activeBookId:r.active_book_id||null};
+ readingStates=new Map();const states=await sbRest('reading_states','select=*&user_id=eq.'+me);
+ for(const item of states||[])readingStates.set(item.book_id,{id:stateKey(item.book_id),bookId:item.book_id,user:activeUser.username.toLowerCase(),pageId:item.page_id,bookmarks:item.bookmarks||[],started:item.started});
+ currentBookId=library.some(b=>b.id===profile.activeBookId)?profile.activeBookId:library[0]?.id||null;restorePosition();applyAppearance();
+};
+saveProfile=async function(){if(!profile||!sbUser)return;await sbRest('profiles','id=eq.'+sbUser.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme:profile.theme,accent:profile.accent,active_book_id:profile.activeBookId||null,updated_at:new Date().toISOString()})});};
+renderUsersTable=function(){const body=$('users-table-body');if(!body)return;body.innerHTML=activeUser?'<tr><td colspan="4" class="p-4 text-sm opacity-70">Contas são administradas em Supabase → Authentication → Users. Permissões administrativas: tabela public.admins.</td></tr>':'';};
+const localApplyPermissions=applySessionPermissions;
+applySessionPermissions=function(){localApplyPermissions();if(!activeUser)return;$('add-user-form').classList.add('hidden');document.querySelector('#backup-admin')?.classList.toggle('hidden',!sbAdmin);};
+async function sbImportLocal(){requireAdmin();const locals=await dbAll(STORE_BOOKS);const server=new Set((await sbRest('books','select=id')).map(b=>b.id));const pending=locals.filter(b=>!server.has(b.id));if(!pending.length){notify('Nenhuma obra local pendente de migração.');return;}
+ if(await ask('Enviar acervo local','Enviar '+pending.length+' obra(s) locais ao Supabase? As obras do servidor não serão substituídas.',[['cancel','Cancelar'],['ok','Enviar obras']])!=='ok')return;
+ await mutate(async()=>{let done=0;for(const raw of pending){const book=hydrateBook({...raw,revision:0});await commitBook(book,{skipLocal:true});done++;releaseBook(book);}await sbLoadCatalog();renderAll();notify(done+' obra(s) enviada(s) ao Supabase.','success');});
+}
+initialize=async function(){try{
+ if(!crypto.subtle)throw Error('Abra o sistema via HTTPS do GitHub Pages.');$('startup-text').textContent='Conectando ao Supabase…';
+ await initDatabase();await migrateBooks();await hydrateLibrary();
+ initialized=true;setupPanAndZoomEvents();setAuthMode('login');
+ // Do not expose local account creation or deletion on the public website.
+ $('add-user-form').classList.add('hidden');
+ const migrationButton=document.createElement('button');migrationButton.className='dialog-button btn-accent';migrationButton.textContent='Enviar minhas obras locais ao Supabase';migrationButton.onclick=()=>perform(sbImportLocal);
+ $('backup-admin').append(migrationButton);
+ if(await sbRestore()){try{await sbIdentify();await sbLoadCatalog();await loadProfile();applySessionPermissions();await switchMode('shelf');}catch(e){console.warn(e);await logout();notify('Falha ao recuperar sessão: '+e.message,'error');}}
+ else applySessionPermissions();
+ $('startup-overlay').hidden=true;$('login-submit').disabled=false;
+ }catch(error){console.error(error);$('startup-text').textContent=errorMessage(error);$('startup-retry').hidden=false;$('startup-title').textContent='Não foi possível abrir o acervo';$('startup-note').textContent='Nenhuma obra local foi apagada.';}
+};
+
+$('login-form').addEventListener('submit',function(e){e.stopImmediatePropagation();return handleLogin(e);},true);
+
 window.addEventListener('DOMContentLoaded',initialize);
 </script></body>
 </html>
